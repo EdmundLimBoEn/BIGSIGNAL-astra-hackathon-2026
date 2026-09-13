@@ -5,6 +5,7 @@ import type {
   SimulationResult,
 } from "../../../packages/contracts";
 import { explanations } from "../../../content/explanations";
+import { metricHelp } from "../../../content/explanations/radio-guide";
 
 export function MathNode({ node }: { node: CalculationNode }) {
   return (
@@ -38,7 +39,7 @@ export function Results({
       <div className="result-tabs">
         {(["WHY", "MATH", "TRY"] as const).map((t) => (
           <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
-            {t === "TRY" ? "WHAT SHOULD I TRY?" : t}
+            {t === "TRY" ? "What can I change?" : t === "WHY" ? "WHY · What happened" : "MATH · See the evidence"}
           </button>
         ))}
       </div>
@@ -58,8 +59,8 @@ export function Results({
               {result.success === "good"
                 ? "SIGNAL MADE IT"
                 : result.success === "marginal"
-                  ? "JUST ABOUT."
-                  : "NOPE."}
+                  ? "WEAK CONNECTION"
+                  : "NO CLEAR CONNECTION"}
             </b>
             <span>
               {result.propagationAvailable
@@ -69,17 +70,18 @@ export function Results({
           </div>
           <div className="metric-grid">
             {[
-              ["Received", result.receivedPowerDbm, "dBm"],
-              ["Noise floor", result.noiseFloorDbm, "dBm"],
-              ["SNR", result.snrDb, "dB"],
-              ["Link margin", result.linkMarginDb, "dB"],
-            ].map(([label, value, unit]) => (
+              ["Received", result.receivedPowerDbm, "dBm", metricHelp.received],
+              ["Noise floor", result.noiseFloorDbm, "dBm", metricHelp.noise],
+              ["SNR", result.snrDb, "dB", metricHelp.snr],
+              ["Link margin", result.linkMarginDb, "dB", metricHelp.margin],
+            ].map(([label, value, unit, help]) => (
               <div key={label}>
                 <span>{label}</span>
                 <b>
                   {Number(value).toFixed(1)}
                   <small> {unit}</small>
                 </b>
+                <small className="metric-explanation">{help}</small>
               </div>
             ))}
           </div>
