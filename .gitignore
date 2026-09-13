@@ -8,3 +8,7 @@ coverage/
 !.env.example
 *.tsbuildinfo
 .gstack/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

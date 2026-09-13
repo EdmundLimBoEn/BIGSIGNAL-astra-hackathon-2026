@@ -10,12 +10,17 @@
   ],
   "scripts": {
     "dev": "vite apps/web --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build apps/web",
+    "build": "bun run typecheck && vite build apps/web",
     "test": "vitest run",
     "test:physics": "vitest run packages/units packages/simulation packages/propagation validation",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/worker/tsconfig.json",
     "dev:server": "bun --watch apps/server/index.ts",
-    "start": "bun apps/server/index.ts"
+    "start": "bun apps/server/index.ts",
+    "dev:worker": "wrangler dev --ip 127.0.0.1",
+    "types:worker": "wrangler types apps/worker/worker-configuration.d.ts --strict-vars=false",
+    "check:worker": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "deploy:worker": "wrangler deploy",
+    "test:worker-runtime": "bun scripts/check-worker-runtime.ts"
   },
   "dependencies": {
     "@bigsignal/contracts": "workspace:*",
@@ -31,12 +36,13 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
-    "typescript": "7.0.2",
-    "vite": "8.3.0",
-    "vitest": "5.0.0",
+    "@types/node": "22.20.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/three": "0.186.0",
-    "@types/node": "22.20.2"
+    "typescript": "7.0.2",
+    "vite": "8.3.0",
+    "vitest": "5.0.0",
+    "wrangler": "4.131.1"
   }
 }
