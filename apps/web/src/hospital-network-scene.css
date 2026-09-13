@@ -319,3 +319,25 @@
   color: #edf2d9;
   border-bottom: 1px solid #65794f;
 }
+
+.hospital-network-demo {
+  min-height: 560px;
+}
+.hospital-network-demo .hospital-network-map {
+  height: 420px;
+  min-height: 420px;
+}
+.hospital-network-demo .hospital-network-globe {
+  top: 65px;
+}
+
+.hospital-network-plan-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  font-size: 11px;
+}
+.hospital-network-demo .hospital-network-toolbar {
+  flex-wrap: wrap;
+}

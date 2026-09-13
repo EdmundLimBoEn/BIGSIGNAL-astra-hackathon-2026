@@ -30,12 +30,17 @@ The small globe illustrates rounded great-circle distance. The drawn geographic 
 
 The sample message is fictional. Successful simulation means a voice-capable path and its return path are available under the model. It does not establish delivery of supplies, patient transport or physical reunion. Return checks assume equal transmit power and receiver bandwidth/noise figure at both ends.
 
+## Audience demo
+
+The main experience is one family-contact request from Meulaboh to Medan. Its radio has a fixed dipole and two reported HF channels, 7.055 and 7.060 MHz. Low/high power represents assumed 5 W and 50 W settings, not a recovered equipment specification. The engine evaluates the outgoing voice link and acknowledgement before the interface reports a reply. Both settings can succeed; the demo does not invent failure to force a puzzle.
+
+The message is explicitly illustrative. A reply from the next operator enables onward family tracing; it is not proof that relatives have received the message or reunited. Technical assumptions and source material are under a single optional disclosure. The full learning levels retain broader radio experimentation.
+
 ## Verification route
 
-1. Open When Phones Fail on the integration branch. Inspect regional hospital pins, coordination hubs and the patient-transfer legend.
-2. Select Meulaboh–Medan. Open the distance inset and compare the selected geographic endpoints.
-3. Select Local terrain and inspect a supported hospital's modern mapped surroundings. Zoom to individual buildings and reset the view.
-4. Try VHF on the regional route. Increase power; the model should still report the horizon limitation.
-5. Switch to 7.055 MHz HF and SEND IT. Inspect the engine path and return-link status. Changing either endpoint or any radio setting must clear the previous message result.
-6. Compare a tenfold power change. Received power should change by 10 dB for an otherwise identical setup.
-7. Check the geographic and local views in POTATO mode and at narrow viewport widths.
+1. Open When Phones Fail on integration. The main flow should contain the map, one message, fixed equipment, two channels, two power settings and one send action.
+2. Send the message. Controls should be disabled during the brief transmission, then a reply should appear only for a usable two-way voice result.
+3. Change channel or power after a reply. The previous acknowledgement should clear. Restarting or leaving the page must cancel pending transmission timers.
+4. Open the distance inset and local hospital surroundings. Close zoom should remain available; modern geography must remain labelled.
+5. Expand the optional real-story section and verify historical attribution and links to the original learning levels.
+6. Test the focused demo on desktop and a narrow viewport. Run the four channel/power combinations through the engine and the full test suite.

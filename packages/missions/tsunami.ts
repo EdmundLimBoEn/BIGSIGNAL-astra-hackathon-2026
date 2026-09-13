@@ -43,6 +43,19 @@ export function createHospitalScenario(
   return s;
 }
 
+export type HospitalOperatorChannel = 7055000 | 7060000;
+export type HospitalOperatorPower = 5 | 50;
+
+export function createHospitalOperatorScenario(
+  channel: HospitalOperatorChannel = 7055000,
+  powerW: HospitalOperatorPower = 5,
+): Scenario {
+  const scenario = createHospitalScenario("meulaboh-medan");
+  scenario.frequencyHz = channel;
+  scenario.transmitter.powerDbm = wattsToDbm(powerW);
+  return scenario;
+}
+
 export function hospitalReplyScenario(s: Scenario): Scenario {
   return {
     ...structuredClone(s),

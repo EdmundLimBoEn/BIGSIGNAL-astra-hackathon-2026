@@ -28,6 +28,7 @@ type Props = ComponentProps<typeof Scene> & {
   routes: readonly RegionalHospitalLink[];
   selectedRouteId: string;
   voiceReady?: boolean;
+  demo?: boolean;
   onSelectRoute: (id: string) => void;
 };
 type V3 = [number, number, number];
@@ -565,7 +566,7 @@ function MapFallback({
         );
       })}
       <text x="310" y="465" textAnchor="middle" fill="#d0dbbd" fontSize="11">
-        Numbers match the station list. Geographic connections, not propagation
+        Numbers match the map key. Geographic connections, not propagation
         paths.
       </text>
     </svg>
@@ -589,6 +590,7 @@ class MapBoundary extends Component<
 export function HospitalNetworkScene(props: Props) {
   const [mode, setMode] = useState<"map" | "rf" | "local">("map");
   const [globe, setGlobe] = useState(false);
+  const [showAll, setShowAll] = useState(!props.demo);
   const [sceneFailed, setSceneFailed] = useState(false);
   const simple = props.graphics === "POTATO" || sceneFailed;
   const [localNodeId, setLocalNodeId] = useState(props.nodes[0]?.id ?? "");
@@ -639,7 +641,11 @@ export function HospitalNetworkScene(props: Props) {
               !props.nodes.some((known) => known.id === node.id),
           ),
         ]
-      : props.nodes;
+      : showAll
+        ? props.nodes
+        : props.nodes.filter(
+            (node) => node.id === from?.id || node.id === to?.id,
+          );
   const customOnMap = custom && from && to && inRegion(from) && inRegion(to);
   const displayRoutes: readonly RegionalHospitalLink[] = custom
     ? customOnMap
@@ -655,7 +661,9 @@ export function HospitalNetworkScene(props: Props) {
           },
         ]
       : []
-    : props.routes;
+    : showAll
+      ? props.routes
+      : props.routes.filter((link) => link.id === props.selectedRouteId);
   const localNode =
     props.nodes.find((node) => node.id === localNodeId) ?? props.nodes[0];
   useEffect(() => {
@@ -683,9 +691,9 @@ export function HospitalNetworkScene(props: Props) {
   }
   return (
     <div
-      className={`hospital-network-scene ${mode === "rf" ? "hospital-network-rf" : ""}`}
+      className={`hospital-network-scene ${props.demo ? "hospital-network-demo" : ""} ${mode === "rf" ? "hospital-network-rf" : ""}`}
     >
-      {props.voiceReady !== undefined && (
+      {!props.demo && props.voiceReady !== undefined && (
         <div className="hospital-network-result" role="status">
           {props.voiceReady
             ? "Voice link and reply available in this experiment"
@@ -701,13 +709,15 @@ export function HospitalNetworkScene(props: Props) {
           >
             Hospital network
           </button>
-          <button
-            type="button"
-            aria-pressed={mode === "rf"}
-            onClick={() => setMode("rf")}
-          >
-            RF path
-          </button>
+          {!props.demo && (
+            <button
+              type="button"
+              aria-pressed={mode === "rf"}
+              onClick={() => setMode("rf")}
+            >
+              RF path
+            </button>
+          )}
           <button
             type="button"
             aria-pressed={mode === "local"}
@@ -716,6 +726,15 @@ export function HospitalNetworkScene(props: Props) {
             Local terrain
           </button>
         </div>
+        {props.demo && mode === "map" && (
+          <button
+            type="button"
+            aria-pressed={showAll}
+            onClick={() => setShowAll((v) => !v)}
+          >
+            {showAll ? "Our connection" : "All hospitals"}
+          </button>
+        )}
         {mode === "map" && (
           <button
             type="button"
@@ -757,26 +776,28 @@ export function HospitalNetworkScene(props: Props) {
         </>
       ) : (
         <>
-          <div className="hospital-network-heading">
-            <span>NORTHERN SUMATRA · 2004–2005 RESPONSE</span>
-            <p>
-              {custom
-                ? "Your custom geographic experiment"
-                : "Many hospitals. One urgent need to connect."}
-            </p>
-            <small>
-              {custom && from && to
-                ? `TX ${from.latitudeDeg.toFixed(3)}°, ${from.longitudeDeg.toFixed(3)}° · RX ${to.latitudeDeg.toFixed(3)}°, ${to.longitudeDeg.toFixed(3)}°. No historical connection implied. Globe shows endpoints beyond this regional map.`
-                : "Approximate area locations. Coastline map, not surveyed hospital sites."}
-            </small>
-          </div>
+          {!props.demo && (
+            <div className="hospital-network-heading">
+              <span>NORTHERN SUMATRA · 2004–2005 RESPONSE</span>
+              <p>
+                {custom
+                  ? "Your custom geographic experiment"
+                  : "Many hospitals. One urgent need to connect."}
+              </p>
+              <small>
+                {custom && from && to
+                  ? `TX ${from.latitudeDeg.toFixed(3)}°, ${from.longitudeDeg.toFixed(3)}° · RX ${to.latitudeDeg.toFixed(3)}°, ${to.longitudeDeg.toFixed(3)}°. No historical connection implied. Globe shows endpoints beyond this regional map.`
+                  : "Approximate area locations. Coastline map, not surveyed hospital sites."}
+              </small>
+            </div>
+          )}
           <div
             className="hospital-network-map"
             tabIndex={simple ? -1 : 0}
             role="group"
             aria-label={
               simple
-                ? "Regional hospital geographic plan. Station numbers match the directory below."
+                ? "Regional hospital geographic plan. Station numbers match the map key below."
                 : "Regional hospital map. Drag to rotate, scroll to zoom. Arrow keys rotate, plus and minus zoom, Home resets."
             }
             onKeyDown={(event) => {
@@ -821,7 +842,7 @@ export function HospitalNetworkScene(props: Props) {
                     />
                   ))}
                   {!custom &&
-                    props.routes.map((link) => {
+                    displayRoutes.map((link) => {
                       const a = props.nodes.find((n) => n.id === link.from),
                         b = props.nodes.find((n) => n.id === link.to);
                       if (!a || !b) return null;
@@ -958,6 +979,15 @@ export function HospitalNetworkScene(props: Props) {
               <small>Surface distance · not an RF path</small>
             </aside>
           )}
+          {simple && (
+            <div className="hospital-network-plan-key">
+              {displayNodes.map((node, index) => (
+                <span key={node.id}>
+                  {index + 1}. {node.shortLabel}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="hospital-network-legend">
             {custom ? (
               <span>
@@ -970,19 +1000,29 @@ export function HospitalNetworkScene(props: Props) {
                   <i />
                   Documented radio connection
                 </span>
-                <span>
-                  <i className="transfer" />
-                  Patient transfer
-                </span>
+                {displayRoutes.some(
+                  (route) => route.kind === "patient-transfer",
+                ) && (
+                  <span>
+                    <i className="transfer" />
+                    Patient transfer
+                  </span>
+                )}
               </>
             )}
             <small>
-              {props.running && props.voiceReady
-                ? "Moving dot = your simulated transmission. "
-                : ""}
-              {custom
-                ? "Custom endpoints have no historical association. Use RF path for calculated propagation."
-                : "Connections show documented activity, not continuous coverage. Use RF path for calculated propagation."}
+              {props.demo ? (
+                "Approximate locations · select a hospital to explore."
+              ) : (
+                <>
+                  {props.running && props.voiceReady
+                    ? "Moving dot = your simulated transmission. "
+                    : ""}
+                  {custom
+                    ? "Custom endpoints have no historical association. Use RF path for calculated propagation."
+                    : "Connections show documented activity, not continuous coverage. Use RF path for calculated propagation."}
+                </>
+              )}
             </small>
           </div>
         </>

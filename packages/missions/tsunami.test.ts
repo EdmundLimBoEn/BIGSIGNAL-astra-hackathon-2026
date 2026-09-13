@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assessHospitalContact,
   createHospitalScenario,
+  createHospitalOperatorScenario,
   hospitalReplyScenario,
 } from "./tsunami";
 import { simulateScenario } from "../simulation/src";
@@ -107,5 +108,32 @@ describe("geographic hospital routes", () => {
     expect(() => createHospitalScenario("missing" as never)).toThrow(
       "Unknown hospital route",
     );
+  });
+});
+
+describe("the operator demo's limited equipment", () => {
+  it("keeps the dipole and voice setup fixed across its four allowed settings", () => {
+    for (const channel of [7055000, 7060000] as const) {
+      for (const power of [5, 50] as const) {
+        const s = createHospitalOperatorScenario(channel, power);
+        expect(s.transmitter.antenna.type).toBe("dipole");
+        expect(s.transmitter.antenna.heightM).toBe(10);
+        expect(s.modeId).toBe("ssb");
+        expect(assessHospitalContact(s, simulateScenario(s)).voiceReady).toBe(
+          true,
+        );
+      }
+    }
+  });
+  it("changes received power by 10 dB without changing the antenna or endpoints", () => {
+    const low = createHospitalOperatorScenario(7055000, 5);
+    const high = createHospitalOperatorScenario(7055000, 50);
+    expect(high.transmitter.antenna).toEqual(low.transmitter.antenna);
+    expect(high.transmitter.position).toEqual(low.transmitter.position);
+    expect(high.receiver).toEqual(low.receiver);
+    expect(
+      simulateScenario(high).receivedPowerDbm -
+        simulateScenario(low).receivedPowerDbm,
+    ).toBeCloseTo(10, 8);
   });
 });
