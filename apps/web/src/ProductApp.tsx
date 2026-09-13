@@ -17,6 +17,7 @@ import { LabWorkspace } from "./LabWorkspace";
 import { TutorPanel } from "./TutorPanel";
 import type { NetworkScenario } from "../../../packages/simulation/src/network";
 import { DisasterLab } from "./DisasterLab";
+import { TsunamiLevel } from "./TsunamiLevel";
 import { TeacherTools } from "./TeacherTools";
 import {
   defaultExperiment,
@@ -33,6 +34,7 @@ type Page =
   | "learn"
   | "lab"
   | "disaster"
+  | "tsunami"
   | "unreasonable"
   | "saved"
   | "teacher"
@@ -41,6 +43,7 @@ const pageLabels: Record<Page, string> = {
   learn: "LEARN",
   lab: "LAB",
   disaster: "DISASTER LAB",
+  tsunami: "WHEN PHONES FAIL",
   unreasonable: "UNREASONABLE ENGINEERING",
   saved: "MY EXPERIMENTS",
   teacher: "TEACHER TOOLS",
@@ -93,7 +96,16 @@ function useOfflineStatus() {
 
 function Product() {
   const [state, setState] = useState<ProductState>(loadProduct);
-  const [page, setPage] = useState<Page>(state.experiment.settings.mode);
+  const [page, setPage] = useState<Page>(() =>
+    location.hash === "#tsunami" ? "tsunami" : state.experiment.settings.mode,
+  );
+  useEffect(() => {
+    history.replaceState(
+      null,
+      "",
+      `${location.pathname}${location.search}${page === "tsunami" ? "#tsunami" : ""}`,
+    );
+  }, [page]);
   const [lessonPhase, setLessonPhase] = useState<
     "brief" | "experiment" | "reflect"
   >("brief");
@@ -319,16 +331,18 @@ function Product() {
         </div>
       </header>
       <nav className="primary-nav" aria-label="Main navigation">
-        {(["learn", "lab", "disaster", "unreasonable"] as const).map((p, i) => (
-          <button
-            key={p}
-            aria-current={page === p ? "page" : undefined}
-            onClick={() => navigate(p)}
-          >
-            <span>0{i + 1}</span>
-            {pageLabels[p]}
-          </button>
-        ))}
+        {(["learn", "lab", "disaster", "tsunami", "unreasonable"] as const).map(
+          (p, i) => (
+            <button
+              key={p}
+              aria-current={page === p ? "page" : undefined}
+              onClick={() => navigate(p)}
+            >
+              <span>0{i + 1}</span>
+              {pageLabels[p]}
+            </button>
+          ),
+        )}
       </nav>
       <nav className="secondary-nav" aria-label="Tools">
         {(["saved", "teacher", "physics"] as const).map((p) => (
@@ -851,21 +865,34 @@ function Product() {
             {workspace()}
           </>
         )}
+        {page === "tsunami" && (
+          <TsunamiLevel onExit={() => navigate("disaster")} />
+        )}
         {page === "disaster" && (
-          <DisasterLab
-            onContextChange={setTutorNetwork}
-            onOpenLab={(scenario) =>
-              openExperiment({
-                ...defaultExperiment(),
-                title: scenario.title,
-                scenario,
-                settings: {
-                  graphics: experiment.settings.graphics,
-                  mode: "lab",
-                },
-              })
-            }
-          />
+          <>
+            <button
+              className="tsunami-entry"
+              onClick={() => navigate("tsunami")}
+            >
+              <span>REAL HISTORY · 2 MINUTES</span>
+              <strong>A hospital needs to be heard.</strong>
+              <span>Play the 2004 tsunami communication story ↗</span>
+            </button>
+            <DisasterLab
+              onContextChange={setTutorNetwork}
+              onOpenLab={(scenario) =>
+                openExperiment({
+                  ...defaultExperiment(),
+                  title: scenario.title,
+                  scenario,
+                  settings: {
+                    graphics: experiment.settings.graphics,
+                    mode: "lab",
+                  },
+                })
+              }
+            />
+          </>
         )}
         {page === "teacher" && (
           <TeacherTools experiment={experiment} onOpen={openExperiment} />
@@ -1068,23 +1095,25 @@ function Product() {
           </section>
         )}
       </main>
-      <TutorPanel
-        context={
-          page === "disaster"
-            ? { mode: "disaster", network: tutorNetwork }
-            : {
-                mode:
-                  page === "unreasonable"
-                    ? "unreasonable"
-                    : page === "learn"
-                      ? "learn"
-                      : "lab",
-                scenario: experiment.scenario,
-                physics: experiment.physics,
-                lessonId: lesson?.id,
-              }
-        }
-      />
+      {page !== "tsunami" && (
+        <TutorPanel
+          context={
+            page === "disaster"
+              ? { mode: "disaster", network: tutorNetwork }
+              : {
+                  mode:
+                    page === "unreasonable"
+                      ? "unreasonable"
+                      : page === "learn"
+                        ? "learn"
+                        : "lab",
+                  scenario: experiment.scenario,
+                  physics: experiment.physics,
+                  lessonId: lesson?.id,
+                }
+          }
+        />
+      )}
       <footer className="product-footer">
         <span>
           B I G S I G N A L <small>SMALL PLANET. ENDLESS QUESTIONS.</small>
