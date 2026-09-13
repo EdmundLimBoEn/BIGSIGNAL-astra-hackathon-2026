@@ -1,5 +1,7 @@
 # Computer B experience handoff
 
+This document records the original mock experience handoff. The `integration` branch now connects the real engine. Use the root [README](../../README.md) and [architecture notes](../../docs/ARCHITECTURE.md) for current behavior and run instructions.
+
 Local `experience` branch, based on engine bootstrap `6960bb54d809a5c8a74a5d2171aebaa487ad0b96`. Changes are confined to `apps/web` and `content/explanations`. Engine, contracts, root configuration, and shared documentation are unchanged. Nothing has been pushed or merged.
 
 ## Implemented

@@ -10,7 +10,8 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { PropagationPath, Scenario } from "../../../packages/contracts";
-import type { Graphics } from "./main";
+import type { Graphics } from "./missions";
+import { terrainProjection } from "./terrainProjection";
 import landData from "../../../content/land.geojson?raw";
 import {
   countries,
@@ -364,35 +365,32 @@ function Beam({ points }: { points: THREE.Vector3[] }) {
     </mesh>
   );
 }
-function Terrain({ graphics }: { graphics: Graphics }) {
+function Terrain({ graphics, projection }: { graphics: Graphics; projection: ReturnType<typeof terrainProjection> }) {
   const terrain = useMemo(() => {
     const mesh = new THREE.PlaneGeometry(
       11,
       6,
-      graphics === "POTATO" ? 28 : 65,
+      graphics === "POTATO" ? 32 : 64,
       graphics === "POTATO" ? 18 : 40,
     );
     const p = mesh.attributes.position;
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i);
       const y = p.getY(i);
-      const ridge =
-        2.2 *
-        Math.exp((-x * x) / 2.3) *
-        Math.exp((-(y - 0.3) * (y - 0.3)) / 12);
-      const detail = 0.22 * Math.sin(x * 3 + y * 2) * Math.cos(y * 3);
+      const ridge = projection.ground(x);
+      const detail = 0.12 * Math.sin(x * 3 + y * 2) * Math.sin(y * 3);
       p.setZ(i, Math.max(0.04, ridge + detail));
     }
     mesh.computeVertexNormals();
     return mesh;
-  }, [graphics]);
+  }, [graphics, projection]);
   useEffect(() => () => terrain.dispose(), [terrain]);
   return (
     <>
       <mesh
         geometry={terrain}
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.05, 0]}
+        position={[0, 0, 0]}
       >
         <meshStandardMaterial color="#426b59" roughness={0.95} flatShading />
       </mesh>
@@ -404,8 +402,8 @@ function Terrain({ graphics }: { graphics: Graphics }) {
         <planeGeometry args={[12, 7, 12, 7]} />
         <meshStandardMaterial color="#183e34" wireframe />
       </mesh>
-      {[-4, 4].map((x) => (
-        <group key={x} position={[x, 0, 0]}>
+      {projection.stations.map(({ x, ground, tip }) => (
+        <group key={x} position={[x, ground, 0]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
             <ringGeometry args={[0.25, 0.28, 40]} />
             <meshBasicMaterial
@@ -417,11 +415,11 @@ function Terrain({ graphics }: { graphics: Graphics }) {
             <boxGeometry args={[0.4, 0.16, 0.3]} />
             <meshStandardMaterial color="#d7dccc" />
           </mesh>
-          <mesh position={[0, 0.2, 0]}>
-            <cylinderGeometry args={[0.035, 0.035, 0.4, 8]} />
+          <mesh position={[0, (tip - ground) / 2, 0]}>
+            <cylinderGeometry args={[0.035, 0.035, tip - ground, 8]} />
             <meshBasicMaterial color="#dbfb8a" />
           </mesh>
-          <mesh position={[0, 0.4, 0]}>
+          <mesh position={[0, tip - ground, 0]}>
             <sphereGeometry args={[0.09, 12, 12]} />
             <meshBasicMaterial color="#dbfb8a" />
           </mesh>
@@ -494,6 +492,7 @@ export function Scene({
     setQuery("");
     setNavigation({ kind: "home", serial: 0 });
   }, [band, view]);
+  const projection = useMemo(() => terrainProjection(scenario), [scenario]);
   const converted = useMemo(
     () =>
       paths
@@ -503,13 +502,14 @@ export function Scene({
               ? p.lat !== undefined && p.lon !== undefined
                 ? [geo(p.lat, p.lon, p.altitudeM)]
                 : []
-              : p.localX !== undefined && p.localY !== undefined
-                ? [new THREE.Vector3(p.localX, p.localY, p.localZ ?? 0)]
-                : [],
+              : (() => {
+                  const position = projection.point(p);
+                  return position ? [new THREE.Vector3(...position)] : [];
+                })(),
           ),
         )
         .filter((p) => p.length >= 2),
-    [paths, globe],
+    [paths, globe, projection],
   );
   const tx = scenario.transmitter.position;
   const rx = scenario.receiver.position;
@@ -517,7 +517,7 @@ export function Scene({
     <div
       className="scene"
       role="region"
-      aria-label={`${band} ${view}. ${globe ? "Schematic Earth with geographic transmitter and receiver markers." : "Illustrative ridge between transmitter on the left and receiver on the right."} Paths are mock geometry, not validated propagation.`}
+      aria-label={`${band} ${view}. ${globe ? "Schematic Earth with geographic transmitter and receiver markers." : "Illustrative ridge between transmitter on the left and receiver on the right."} Paths come from the educational propagation engine. Terrain spacing and heights are exaggerated for visibility.`}
     >
       <Boundary>
         <Canvas
@@ -570,7 +570,7 @@ export function Scene({
               ))}
             </>
           ) : (
-            <Terrain graphics={graphics} />
+            <Terrain graphics={graphics} projection={projection} />
           )}
           {converted.map((points, i) => (
             <group key={i}>

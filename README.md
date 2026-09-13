@@ -1,45 +1,44 @@
 # B I G S I G N A L
 
-An experimental educational RF simulator for students, teachers, and radio clubs.
-Explore an interactive 3D globe, build a communication link, predict the result, press **SEND IT**, and inspect why it works or fails.
+An educational RF simulator for students, teachers, and radio clubs. Configure a radio link, predict the result, press **SEND IT**, and inspect the propagation path, link budget, noise, and limiting factors.
 
-The intended view has Earth, an ionosphere shell, geographic transmitter and receiver positions, and animated propagation paths. The current starter is temporary tooling verification.
-
-## Current status
-
-The repository now has a runnable React starter, draft TypeScript contracts, a deterministic mock, and tested RF foundation functions. Computer A owns simulation and validation. Computer B owns the experience.
-
-The starter displays mock values. The canonical `simulateScenario` adapter, terrain, HF, and full mission UI remain to be built.
-
-The core loop is mission → predict → configure → send → watch → result → WHY → MATH → change something → retry.
-
-## Read the docs
-
-- [Finalized build plan](docs/BUILD_PLAN.md) preserves the supplied plan in full.
-- [Collaboration guide](CONTRIBUTING.md) defines ownership, branches, and integration checks.
-- [Architecture and contract notes](docs/ARCHITECTURE.md) records boundaries and unresolved contract details.
-- [Build checklist](docs/BUILD_CHECKLIST.md) tracks bootstrap and demo readiness.
-- [Computer A handoff](docs/COMPUTER_A.md) gives the engine implementation order.
-- [Computer B handoff](docs/COMPUTER_B.md) records the globe direction and mock integration.
-- [Validation plan](validation/README.md) defines required evidence.
-- [Demo script](demo/demo-script.md) describes the judging sequence.
+The `integration` branch combines the simulation engine from `engine` and the web experience from `experience`. The app runs the real `simulateScenario` locally. No API server, account, or cloud service is required.
 
 ## Run locally
 
 ```sh
 bun install --frozen-lockfile
 bun run dev
-bun run build
-bun run test
-bun run test:physics
 ```
 
-The development server opens at `http://127.0.0.1:5173`. The production build is written to `apps/web/dist`.
+Open `http://127.0.0.1:5173`, or the next available port printed by Vite.
 
-## Stack
+## Verify and preview
 
-TypeScript, React, Vite, Three.js, React Three Fiber, Zustand, and Vitest. Use Bun 1.3.14 for dependency management. The lockfile is committed.
+```sh
+bun run test
+bun run test:physics
+bun run build
+bunx vite preview apps/web --host 127.0.0.1 --port 4173
+```
 
-React is pinned to 19.2.8 to satisfy React Three Fiber 9.7.0 peer requirements.
+The production build is written to `apps/web/dist`. Visit the production preview once while online and wait for the offline cache notice before testing an offline reload. After an update, close old tabs and reopen the app to activate its new cache.
 
-The core demo must work offline without accounts or a required cloud backend. A teaching agent and voice control are optional additions after the simulator works.
+## Try the integrated missions
+
+- VHF starts with the engine's ridge scenario. Compare 5 W with 50 W, then return to 5 W and raise the transmitter from 2 m to 15 m. Power adds 10 dB; raising the antenna clears enough diffraction loss to help more.
+- HF runs Singapore to Tokyo under configured daytime conditions. Try 14 MHz, then 30 MHz. Above the modeled MUF, the ray escapes and the link fails. Any remaining positive budget is explicitly hypothetical because no supported path reaches the receiver.
+- Open WHY for explanations and ranked improvements, or MATH for the calculation tree and assumptions. Advanced controls, saved experiments, graphics modes, and presentation mode use the same engine.
+
+Terrain is a schematic profile of the configured single obstruction. Horizontal spacing and vertical heights are exaggerated for visibility. The globe uses the engine's geographic path coordinates. These are educational approximations, not operational RF predictions.
+
+## Project guides
+
+- [Build plan](docs/BUILD_PLAN.md)
+- [Collaboration and branch ownership](CONTRIBUTING.md)
+- [Architecture and integration boundary](docs/ARCHITECTURE.md)
+- [Backend contracts](packages/contracts/README.md)
+- [Simulation guide](packages/simulation/README.md)
+- [Validation](validation/README.md)
+
+The stack is TypeScript, React, Vite, Three.js, React Three Fiber, and Vitest. Dependencies use the committed Bun lockfile. There is no configured hosted deployment target in this repository.

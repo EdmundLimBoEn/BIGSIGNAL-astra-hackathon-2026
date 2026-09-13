@@ -289,22 +289,22 @@ h1 {
   padding: 6px 10px;
   font-size: 10px;
 }
-.mock-banner {
+.engine-banner {
   display: flex;
   gap: 12px;
   align-items: center;
   padding: 15px 4px;
   color: #b6be9e;
 }
-.mock-banner > span {
+.engine-banner > span {
   font-size: 23px;
   color: var(--lime);
 }
-.mock-banner b {
+.engine-banner b {
   font-size: 11px;
   font-weight: 500;
 }
-.mock-banner p {
+.engine-banner p {
   font-size: 10px;
   margin: 3px 0;
   color: var(--muted);
@@ -882,13 +882,13 @@ input[type="number"] {
 .inspector {
   background: #101b1e;
 }
-.mock-banner {
+.engine-banner {
   padding: 13px 4px;
 }
-.mock-banner > span {
+.engine-banner > span {
   font-size: 19px;
 }
-.mock-banner b {
+.engine-banner b {
   color: #b4c8b5;
 }
 .send {
@@ -1058,4 +1058,13 @@ input[type="number"] {
   .present-dock>div { flex-basis:100%; }
   .present-dock .send { width:100%; justify-content:center; padding:12px; }
   .presentation { padding-bottom:190px; }
+}
+
+.route-warning {
+  padding: 1rem;
+  border: 1px solid #b48b45;
+  border-radius: 12px;
+  color: #f7d99d;
+  background: #282419;
+  line-height: 1.6;
 }

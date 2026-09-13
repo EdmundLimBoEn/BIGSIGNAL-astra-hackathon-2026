@@ -5,61 +5,25 @@ import type {
   Scenario,
   SimulationResult,
 } from "../../../packages/contracts";
-import { exampleScenario } from "../../../packages/contracts/exampleScenario";
+import { ScenarioValidationError } from "../../../packages/simulation/src";
+import {
+  createMission,
+  defaultSettings as defaults,
+  parseSettings,
+  type Prediction,
+  type Settings,
+  type Graphics,
+} from "./missions";
+export type { Graphics } from "./missions";
 import { wattsToDbm, dbmToWatts } from "../../../packages/units/src";
 import { runSimulation } from "./simulationAdapter";
 import { Scene } from "./Scene";
 import { explanations } from "../../../content/explanations";
 import "./style.css";
 
-type Prediction = "good" | "marginal" | "failed";
-export type Graphics = "BIG" | "NORMAL" | "POTATO";
-type Settings = {
-  band: "VHF" | "HF";
-  scenario: Scenario;
-  graphics: Graphics;
-  prediction: Prediction | null;
-  attempts: number;
-};
 const labels = { good: "Strong", marginal: "Marginal", failed: "Dead" };
-const defaults = (): Settings => ({
-  band: "VHF",
-  scenario: structuredClone(exampleScenario),
-  graphics: "NORMAL",
-  prediction: null,
-  attempts: 0,
-});
 function read(key: string): Settings {
-  const s = JSON.parse(localStorage.getItem(key) || "null");
-  if (
-    !s ||
-    !["VHF", "HF"].includes(s.band) ||
-    !["BIG", "NORMAL", "POTATO"].includes(s.graphics) ||
-    ![null, "good", "marginal", "failed"].includes(s.prediction) ||
-    !Number.isInteger(s.attempts) ||
-    s.attempts < 0
-  )
-    throw Error("Invalid settings");
-  const base = defaults().scenario;
-  // Validate the stored shape before allowing persisted values into controls.
-  const validate = (a: unknown, b: unknown): boolean =>
-    typeof b === "number"
-      ? typeof a === "number" && Number.isFinite(a)
-      : typeof b === "object" && b !== null
-        ? typeof a === "object" &&
-          a !== null &&
-          Object.entries(b).every(([k, v]) =>
-            validate((a as Record<string, unknown>)[k], v),
-          )
-        : typeof a === typeof b;
-  if (
-    !validate(s.scenario, base) ||
-    s.scenario.frequencyHz <= 0 ||
-    s.scenario.transmitter.powerDbm < 0 ||
-    s.scenario.transmitter.powerDbm > 80
-  )
-    throw Error("Invalid scenario");
-  return s;
+  return parseSettings(JSON.parse(localStorage.getItem(key) || "null"));
 }
 function MathNode({ node }: { node: CalculationNode }) {
   return (
@@ -92,7 +56,7 @@ function App() {
   const [sentPrediction, setSentPrediction] = useState<Prediction | null>(null);
   const [running, setRunning] = useState(false);
   const [tab, setTab] = useState<"WHY" | "MATH">("WHY");
-  const [view, setView] = useState<"globe" | "terrain">("globe");
+  const [view, setView] = useState<"globe" | "terrain">(settings.band === "HF" ? "globe" : "terrain");
   const [notice, setNotice] = useState("");
   const [presenting, setPresenting] = useState(false);
   const [offlineStatus, setOfflineStatus] = useState(
@@ -147,25 +111,8 @@ function App() {
     setRunning(false);
   }
   function selectBand(next: "VHF" | "HF") {
-    const s = structuredClone(exampleScenario);
+    const s = createMission(next);
     s.difficulty = scenario.difficulty;
-    if (next === "HF") {
-      s.id = "hf-expedition";
-      s.title = "Singapore to Tokyo";
-      s.frequencyHz = 14e6;
-      s.modeId = "ssb";
-      s.receiver.bandwidthHz = 2400;
-      s.transmitter.position = {
-        latitudeDeg: 1.35,
-        longitudeDeg: 103.8,
-        altitudeM: 0,
-      };
-      s.receiver.position = {
-        latitudeDeg: 35.7,
-        longitudeDeg: 139.7,
-        altitudeM: 0,
-      };
-    }
     setSettings({ ...settings, band: next, scenario: s, prediction: null });
     setResult(null);
     setRunning(false);
@@ -173,10 +120,19 @@ function App() {
   }
   function send() {
     if (!prediction || running) return;
-    setResult(runSimulation(scenario));
-    setSentPrediction(prediction);
-    setRunning(true);
-    setSettings((s) => ({ ...s, attempts: s.attempts + 1 }));
+    try {
+      setResult(runSimulation(scenario));
+      setSentPrediction(prediction);
+      setRunning(true);
+      setNotice("");
+      setSettings((s) => ({ ...s, attempts: s.attempts + 1 }));
+    } catch (error) {
+      setResult(null);
+      setRunning(false);
+      setNotice(error instanceof ScenarioValidationError
+        ? error.issues.join(". ")
+        : "Could not run this experiment. Reset the universe and try again.");
+    }
   }
   function save() {
     try {
@@ -188,10 +144,11 @@ function App() {
   }
   function load() {
     try {
-      setSettings(read("bigsignal-experiment"));
+      const saved = read("bigsignal-experiment");
+      setSettings(saved);
       setResult(null);
       setRunning(false);
-      setView("globe");
+      setView(saved.band === "HF" ? "globe" : "terrain");
       setNotice("Saved experiment loaded.");
     } catch {
       setNotice("No valid saved experiment found.");
@@ -318,8 +275,9 @@ function App() {
               </h2>
               <p>
                 {result
-                  ? `${result.propagationPaths.length} illustrative path(s) · ${result.success.toUpperCase()} · fixture preview`
+                  ? `${result.propagationPaths.length} modeled path(s) · ${result.success.toUpperCase()}`
                   : "Orbit the globe. Set your parameters. Find your signal."}
+                {view === "terrain" && " · Schematic terrain; spacing and heights exaggerated."}
               </p>
             </div>
             <div className="scene-bottom">
@@ -358,16 +316,22 @@ function App() {
               </label>
             </div>
           </div>
-          <div className="mock-banner">
+          <div className="engine-banner">
             <span>◈</span>
             <div>
-              <b>Experience preview · mock engine</b>
+              <b>Live RF engine · educational model</b>
               <p>
-                Numbers and paths are illustrative fixtures. Real RF results
-                await Computer A’s engine.
+                Numbers, paths, and improvement estimates come from the simulation engine.
+                Explore its assumptions in MATH.
               </p>
             </div>
           </div>
+          {result && !result.propagationAvailable && (
+            <p role="alert" className="route-warning">
+              No modeled path reaches the receiver. The power, SNR, and margin below
+              describe a hypothetical route, not reception. {result.warnings.find((warning) => warning.includes("ray escapes") || warning.includes("Beyond the modeled") || warning.includes("maxHops"))}
+            </p>
+          )}
           <section className="results" aria-live="polite">
             <div className="result-status">
               <span className="eyebrow">LINK STATUS</span>
@@ -384,7 +348,7 @@ function App() {
               </h3>
               <small>
                 {result
-                  ? `${result.confidence.level} confidence · mock`
+                  ? `${result.confidence.level} confidence · educational model`
                   : "Predict, configure, send."}
               </small>
             </div>
@@ -431,7 +395,7 @@ function App() {
                 <p>
                   You predicted{" "}
                   <b>{sentPrediction ? labels[sentPrediction] : "—"}</b> ·
-                  Fixture result: <b>{labels[result.success]}</b>
+                  Engine result: <b>{labels[result.success]}</b>
                 </p>
                 {result.limitingFactors.map((f, i) => (
                   <article key={f.id}>
@@ -445,8 +409,8 @@ function App() {
                       </p>
                     </div>
                     <strong>
-                      +{f.possibleImprovementDb} dB
-                      <small>fixture potential</small>
+                      {f.possibleImprovementDb > 0 ? `+${f.possibleImprovementDb.toFixed(1)} dB` : "Repair constraint"}
+                      <small>{f.possibleImprovementDb > 0 ? "estimated improvement" : "restore a usable link"}</small>
                     </strong>
                   </article>
                 ))}
@@ -465,21 +429,21 @@ function App() {
                     </p>
                   ))}
                 <small>
-                  Required SNR: {result.requiredSnrDb} dB ·{" "}
+                  Required SNR: {result.requiredSnrDb.toFixed(1)} dB ·{" "}
                   {result.confidence.reasons.join(" ")}
                 </small>
               </div>
             ) : (
               <div className="math-content">
                 <p>
-                  Fixture values only. These are not validated calculations.
+                  Calculated by the RF engine. Read each model’s assumptions and limitations below.
                 </p>
                 {result.calculations.length ? (
                   result.calculations.map((node) => (
                     <MathNode key={node.id} node={node} />
                   ))
                 ) : (
-                  <p>The engine has not supplied calculation provenance yet.</p>
+                  <p>No calculation details are available for this result.</p>
                 )}
                 {result.warnings.map((w) => (
                   <p key={w}>{w}</p>
@@ -569,7 +533,10 @@ function App() {
             )}
           </div>
           <div className="control-group">
-            <label htmlFor="antenna">Antenna</label>
+            <div className="control-label">
+              <label htmlFor="antenna">Antenna</label>
+              <b>{scenario.transmitter.antenna.gainDbi.toFixed(1)} <small>dBi</small></b>
+            </div>
             <select
               id="antenna"
               value={scenario.transmitter.antenna.type}
@@ -752,7 +719,7 @@ function App() {
               setSettings(defaults());
               setResult(null);
               setRunning(false);
-              setView("globe");
+              setView("terrain");
               setNotice("Universe reset. Saved experiment kept.");
             }}
           >
@@ -780,7 +747,7 @@ function App() {
             {band === "HF"
               ? "Can the ionosphere bring your signal home?"
               : "Can your signal get past the ridge?"}
-            <small>Illustrative preview · physics integration pending</small>
+            <small>Live simulation · educational approximations</small>
           </p>
           <button
             className="send"

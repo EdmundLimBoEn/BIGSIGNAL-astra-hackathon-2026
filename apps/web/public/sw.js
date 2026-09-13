@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
           );
         }
       }
-      return (await cache.match(event.request)) || fetch(event.request);
+      return (await cache.match(event.request, { ignoreVary: true })) || fetch(event.request);
     })(),
   );
 });
