@@ -269,3 +269,7 @@ body { background: var(--workshop-paper); }
   background: #d7e1e3;
   border-color: #5c7684;
 }
+
+.product-app .metric-grid .metric-unavailable { font-family: inherit; font-size: 14px; overflow-wrap: anywhere; }
+.product-app .metric-grid .metric-unavailable small { display: block; font-size: 11px; margin-top: 5px; }
+.product-app .lab-results > .route-warning { margin: 12px 20px; padding: 12px; font-size: 14px; line-height: 1.5; }

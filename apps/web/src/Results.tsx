@@ -4,6 +4,7 @@ import type {
   Scenario,
   SimulationResult,
 } from "../../../packages/contracts";
+import { unavailableHfExplanation } from "../../../content/explanations/unavailablePath";
 import { explanations } from "../../../content/explanations";
 
 export function MathNode({ node }: { node: CalculationNode }) {
@@ -25,6 +26,30 @@ export function MathNode({ node }: { node: CalculationNode }) {
     </details>
   );
 }
+export function CandidatePathDiagnostics({ result }: { result: SimulationResult }) {
+  return (
+    <section aria-label="Hypothetical candidate-path diagnostics">
+      <h3>Hypothetical candidate-path diagnostics</h3>
+      <p>No supported path reaches the receiver. These values assume the candidate path worked. They are not a received signal or usable link.</p>
+      <dl>
+        <dt>Candidate received power</dt><dd>{result.receivedPowerDbm.toFixed(1)} dBm</dd>
+        <dt>Candidate SNR</dt><dd>{result.snrDb.toFixed(1)} dB</dd>
+        <dt>Candidate link margin</dt><dd>{result.linkMarginDb.toFixed(1)} dB</dd>
+      </dl>
+      {result.calculations.map((node) => <MathNode key={node.id} node={node} />)}
+    </section>
+  );
+}
+
+function hfFailure(result: SimulationResult, scenario: Scenario) {
+  if (result.propagationAvailable || !result.explanationKeys.includes("hf-above-muf")) return null;
+  const nodes = result.calculations.flatMap(function flatten(node): CalculationNode[] {
+    return [node, ...(node.children ?? []).flatMap(flatten)];
+  });
+  const value = (id: string) => nodes.find(node => node.id === id)?.value;
+  return unavailableHfExplanation(scenario.frequencyHz, value("hf-muf"), value("hf-local-hour"), value("hf-critical-frequency"));
+}
+
 export function Results({
   result,
   scenario,
@@ -33,6 +58,7 @@ export function Results({
   scenario: Scenario;
 }) {
   const [tab, setTab] = useState<"WHY" | "MATH" | "TRY">("WHY");
+  const hfExplanation = result ? hfFailure(result, scenario) : null;
   return (
     <section className="lab-results" aria-label="Simulation results">
       <div className="result-tabs">
@@ -69,20 +95,21 @@ export function Results({
           </div>
           <div className="metric-grid">
             {[
-              ["Received", result.receivedPowerDbm, "dBm"],
+              ["Received", result.propagationAvailable ? result.receivedPowerDbm : null, "dBm"],
               ["Noise floor", result.noiseFloorDbm, "dBm"],
-              ["SNR", result.snrDb, "dB"],
-              ["Link margin", result.linkMarginDb, "dB"],
+              ["SNR", result.propagationAvailable ? result.snrDb : null, "dB"],
+              ["Link margin", result.propagationAvailable ? result.linkMarginDb : null, "dB"],
             ].map(([label, value, unit]) => (
               <div key={label}>
                 <span>{label}</span>
-                <b>
-                  {Number(value).toFixed(1)}
-                  <small> {unit}</small>
+                <b className={value === null ? "metric-unavailable" : undefined}>
+                  {value === null ? "Unavailable" : Number(value).toFixed(1)}
+                  <small>{value === null ? "No modeled path" : ` ${unit}`}</small>
                 </b>
               </div>
             ))}
           </div>
+          {hfExplanation && <p className="route-warning">{hfExplanation}</p>}
           {result.explanationKeys.includes("hf-above-muf") && (
             <p className="sky-refusal">
               THE IONOSPHERE HAS DECLINED YOUR REQUEST.
@@ -111,9 +138,9 @@ export function Results({
                   calculation to inspect its equation, inputs, units, and
                   assumptions.
                 </p>
-                {result.calculations.map((n) => (
+                {result.propagationAvailable ? result.calculations.map((n) => (
                   <MathNode key={n.id} node={n} />
-                ))}
+                )) : <CandidatePathDiagnostics result={result} />}
               </>
             ) : (
               <>
