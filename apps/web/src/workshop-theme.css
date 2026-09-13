@@ -20,7 +20,8 @@
 body { background: var(--workshop-paper); }
 .product-app { color: var(--workshop-ink); padding-inline: 32px; }
 .product-app button { color: var(--workshop-ink); background: transparent; border-color: var(--workshop-line); border-radius: 4px; font-family: inherit; }
-.product-app button:hover:not(:disabled) { background: #d7e1e3; border-color: #5c7684; }
+/* Generic hover must not replace a component's background independently of its text. */
+:where(.product-app button:hover:not(:disabled)) { border-color: #5c7684; }
 .product-app button:disabled { opacity: .5; }
 .product-app :focus-visible { outline: 3px solid #386f92; outline-offset: 3px; }
 .product-app :is(input, select, textarea) { background: var(--workshop-sheet); border-color: #aebec4; color: var(--workshop-ink); border-radius: 3px; accent-color: var(--workshop-blue); }

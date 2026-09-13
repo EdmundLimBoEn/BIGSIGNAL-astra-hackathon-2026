@@ -142,8 +142,7 @@ button {
     border-color var(--transition),
     color var(--transition);
 }
-button:hover:not(:disabled) {
-  background: var(--surface-2);
+:where(button:hover:not(:disabled)) {
   border-color: var(--text-faint);
 }
 button:disabled {

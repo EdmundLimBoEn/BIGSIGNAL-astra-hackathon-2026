@@ -1,4 +1,17 @@
 /* Shared light-surface palette. Dark teaching scenes keep their own contrast. */
+.product-app .primary:hover:not(:disabled),
+.product-app .primary:active:not(:disabled) { background:#10594e; color:#fff; border-color:#10594e; }
+/* Override the global light hover treatment inside the dark rescue scene. */
+.product-app .rescue-scene .rescue-story-controls button { box-shadow:none; }
+.product-app .rescue-scene .rescue-story-controls button:hover:not(:disabled),
+.product-app .rescue-scene .rescue-story-controls button:active:not(:disabled) { background:#2b5261; color:#f2faf7; border-color:#91bcb6; box-shadow:none; }
+.product-app .rescue-scene .rescue-story-controls button[aria-pressed=true],
+.product-app .rescue-scene .rescue-story-controls button[aria-pressed=true]:hover:not(:disabled),
+.product-app .rescue-scene .rescue-story-controls button[aria-pressed=true]:active:not(:disabled) { background:#c3f0db; color:#173e36; border-color:#c3f0db; box-shadow:none; }
+.product-app .rescue-scene .rescue-story-controls button:focus-visible { outline:3px solid #f1cc85; outline-offset:3px; }
+.product-app .rescue-scene figcaption button { background:#173441; color:#e4f2eb; box-shadow:none; }
+.product-app .rescue-scene figcaption button:hover:not(:disabled),
+.product-app .rescue-scene figcaption button:active:not(:disabled) { background:#2b5261; color:#fff; border-color:#91bcb6; box-shadow:none; }
 :root { --workshop-paper:#f5f7fa; --workshop-sheet:#fff; --workshop-ink:#203447; --workshop-muted:#526579; --workshop-line:#d8e1e9; --workshop-blue:#236385; }
 .product-app { color:var(--workshop-ink); background:var(--workshop-paper); }
 .product-app .product-header { min-height:76px; height:auto; padding-block:12px; gap:16px; }
