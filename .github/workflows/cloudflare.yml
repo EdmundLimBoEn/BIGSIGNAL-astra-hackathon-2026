@@ -48,7 +48,24 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist
+      - name: Check that this commit is still main
+        id: main_head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')
+          if [[ ! "$main_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Could not resolve the current main commit." >&2
+            exit 1
+          fi
+          if [[ "$main_sha" == "$GITHUB_SHA" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping deployment because main has advanced beyond this run."
+          fi
       - name: Deploy verified Worker and assets
+        if: steps.main_head.outputs.current == 'true'
         run: bun run deploy:worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

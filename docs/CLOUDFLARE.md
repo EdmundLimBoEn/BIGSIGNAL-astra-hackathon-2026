@@ -33,7 +33,7 @@ The public origin is fixed in `wrangler.jsonc` to `https://bigsignal.edmundlim.s
 
 ## Release through GitHub Actions
 
-Pull requests and pushes to `main` run the full tests, both TypeScript checks, the web build, Wrangler dry run, and local Workers runtime checks. Only a verified push to `main` deploys. The deploy job downloads the exact web assets built by its verification job. Main runs are serialized so concurrent build completion cannot reorder deployments.
+Pull requests and pushes to `main` run the full tests, both TypeScript checks, the web build, Wrangler dry run, and local Workers runtime checks. Only a verified push to `main` deploys. The deploy job downloads the exact web assets built by its verification job. The deployment job is serialized. Immediately before deployment, an authenticated GitHub API check compares the current `main` SHA with the run’s `GITHUB_SHA`. An older run skips deployment after `main` advances; an API failure stops the job. Serialization alone does not guarantee queue order.
 
 The deploy command is `bun run deploy:worker`. It uploads the Worker and Static Assets and applies the configured custom domain. The coordinator owns the first deployment, DNS, and secret provisioning. No deployment occurs during local tests or the dry run.
 
