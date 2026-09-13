@@ -259,3 +259,13 @@ body { background: var(--workshop-paper); }
 .product-app .df-file-tools { color: var(--workshop-muted); }
 .product-app .tutor-panel footer { color: var(--workshop-muted); }
 @media (max-width: 760px) { .product-app .lab-toolbar { margin-bottom: 65px; } }
+
+.product-app .workspace-content .pin-result {
+  color: var(--workshop-ink);
+  background: var(--workshop-sheet);
+  border-color: var(--workshop-line);
+}
+.product-app .workspace-content .pin-result:hover:not(:disabled) {
+  background: #d7e1e3;
+  border-color: #5c7684;
+}
