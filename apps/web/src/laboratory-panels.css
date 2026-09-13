@@ -258,9 +258,9 @@
   background: #312a1e;
 }
 .product-app .dl-send {
-  background: #d1f888 !important;
-  color: #192510 !important;
-  border-color: #d1f888 !important;
+  background: #d1f888;
+  color: #192510;
+  border-color: #d1f888;
   font-weight: 800;
   letter-spacing: 1px;
 }

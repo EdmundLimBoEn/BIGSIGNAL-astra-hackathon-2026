@@ -28,6 +28,7 @@ import {
 } from "./productStorage";
 import type { ProductState } from "./productStorage";
 import type { PhysicsSettings } from "../../../packages/simulation/src/laboratory";
+import { RadioBenchIllustration } from "./RadioBenchIllustration";
 import "./product.css";
 import "./workspace.css";
 
@@ -41,14 +42,14 @@ type Page =
   | "teacher"
   | "physics";
 const pageLabels: Record<Page, string> = {
-  learn: "LEARN",
-  lab: "LAB",
-  disaster: "DISASTER LAB",
-  tsunami: "WHEN PHONES FAIL",
-  unreasonable: "UNREASONABLE ENGINEERING",
-  saved: "MY EXPERIMENTS",
-  teacher: "TEACHER TOOLS",
-  physics: "ABOUT THE PHYSICS",
+  learn: "Learn",
+  lab: "Radio lab",
+  disaster: "Disaster lab",
+  tsunami: "When phones fail",
+  unreasonable: "Unreasonable engineering",
+  saved: "My experiments",
+  teacher: "Teacher tools",
+  physics: "About the physics",
 };
 class ProductBoundary extends Component<
   { children: ReactNode },
@@ -380,23 +381,22 @@ function Product() {
         >
           <span className="signal-mark">◖)))</span>
           <span>
-            B I G S I G N A L<small>THE WORLD IS YOUR RADIO LAB.</small>
+            BIG SIGNAL<small>A radio science workshop</small>
           </span>
         </button>
         <div className="header-actions">
-          <span className="local-dot">LOCAL / NO ACCOUNT</span>
+          <span className="local-dot">No account needed</span>
           <button onClick={() => input.current?.click()}>Open file ↗</button>
         </div>
       </header>
       <nav className="primary-nav" aria-label="Main navigation">
         {(["learn", "lab", "disaster", "tsunami", "unreasonable"] as const).map(
-          (p, i) => (
+          (p) => (
             <button
               key={p}
               aria-current={page === p ? "page" : undefined}
               onClick={() => navigate(p)}
             >
-              <span>0{i + 1}</span>
               {pageLabels[p]}
             </button>
           ),
@@ -435,11 +435,11 @@ function Product() {
           <section className="onboarding">
             <div>
               <span className="eyebrow">
-                A SMALL QUESTION. A VERY BIG SIGNAL.
+                RADIO SCIENCE, BY EXPERIMENT
               </span>
               <h1>
-                Want to make a<br />
-                radio signal <em>travel?</em>
+                Make contact.<br />
+                <em>Find out how.</em>
               </h1>
               <p>
                 Two radios. No wire. A little science.
@@ -450,7 +450,7 @@ function Product() {
                 className="primary"
                 onClick={() => openLesson(lessons[0])}
               >
-                YES, OBVIOUSLY. ↗
+                Build your first link ↗
               </button>
               <button
                 className="text-button"
@@ -462,28 +462,12 @@ function Product() {
                 I know a little radio. Show me the course.
               </button>
               <div className="onboard-facts">
-                <span>◉ No hardware</span>
-                <span>◎ Works offline</span>
-                <span>↗ Learn by trying</span>
+                <span>No hardware needed</span>
+                <span>Works offline</span>
+                <span>Learn by trying</span>
               </div>
             </div>
-            <div
-              className="radio-illustration"
-              aria-label="Illustration of radio waves linking two antennas"
-              role="img"
-            >
-              <div className="orbital-ring ring-one" />
-              <div className="orbital-ring ring-two" />
-              <div className="orbital-ring ring-three" />
-              <div className="big-signal-dot" />
-              <div className="radio-station station-tx">
-                ╧<span>YOU</span>
-              </div>
-              <div className="radio-station station-rx">
-                ╧<span>SOMEONE ELSE</span>
-              </div>
-              <div className="illustration-tag">NO WIRE. STILL WORKS.</div>
-            </div>
+            <RadioBenchIllustration />
           </section>
         ) : null}
         {state.onboarded && page === "learn" && !lesson && (

@@ -3,11 +3,11 @@
   right: 22px;
   bottom: 18px;
   z-index: 45;
-  background: #d3ee79 !important;
-  color: #172014 !important;
-  border: 1px solid #e2f5ab !important;
-  border-radius: 14px !important;
-  padding: 11px 19px !important;
+  background: #d3ee79;
+  color: #172014;
+  border: 1px solid #e2f5ab;
+  border-radius: 14px;
+  padding: 11px 19px;
   font-weight: 700;
   box-shadow: 0 8px 35px #0006;
 }
@@ -92,9 +92,9 @@
   margin: 17px 0;
 }
 .tutor-prompts button {
-  text-align: left !important;
-  font-size: 12px !important;
-  padding: 10px !important;
+  text-align: left;
+  font-size: 12px;
+  padding: 10px;
 }
 .tutor-message {
   border: 1px solid #334439;
@@ -199,25 +199,25 @@
   overflow: auto;
 }
 .tutor-availability {
-  font-size: 11px !important;
+  font-size: 11px;
   line-height: 1.4;
   color: #adbda7;
   margin: 0 0 8px;
 }
 .tutor-availability button {
-  padding: 3px 6px !important;
+  padding: 3px 6px;
   margin: 5px 0;
-  font-size: 11px !important;
+  font-size: 11px;
 }
 .tutor-panel textarea,
 .tutor-panel input[type="password"] {
   box-sizing: border-box;
   width: 100%;
-  background: #0c1418 !important;
-  color: #edf2e7 !important;
-  border: 1px solid #465345 !important;
+  background: #0c1418;
+  color: #edf2e7;
+  border: 1px solid #465345;
   border-radius: 8px;
-  padding: 10px !important;
+  padding: 10px;
   font: inherit;
   font-size: 13px;
   resize: vertical;
@@ -226,11 +226,11 @@
   font-size: 12px;
 }
 .tutor-consent {
-  display: flex !important;
+  display: flex;
   align-items: flex-start;
   gap: 8px;
   color: #c1ccba;
-  font-size: 11px !important;
+  font-size: 11px;
   line-height: 1.45;
   margin: 8px 0 12px;
 }
@@ -245,8 +245,8 @@
   margin-top: 7px;
 }
 .tutor-actions button {
-  font-size: 12px !important;
-  padding: 9px 12px !important;
+  font-size: 12px;
+  padding: 9px 12px;
 }
 .tutor-footnote {
   display: flex;
@@ -258,8 +258,8 @@
   margin-top: 8px;
 }
 .tutor-footnote button {
-  font-size: 10px !important;
-  padding: 4px 7px !important;
+  font-size: 10px;
+  padding: 4px 7px;
 }
 .tutor-error {
   color: #f2c8a6;
@@ -283,7 +283,7 @@
   margin-bottom: 5px;
 }
 .tutor-call button {
-  font-size: 12px !important;
+  font-size: 12px;
 }
 .tutor-panel button:disabled {
   opacity: 0.45;
@@ -295,7 +295,7 @@
   outline-offset: 3px;
 }
 .sr-only {
-  position: absolute !important;
+  position: absolute;
   width: 1px;
   height: 1px;
   padding: 0;
@@ -313,23 +313,23 @@
   .tutor-launcher {
     right: 12px;
     bottom: 12px;
-    padding: 9px 14px !important;
+    padding: 9px 14px;
   }
   .tutor-compose {
     max-height: 58%;
   }
 }
 .product-app .tutor-panel .tutor-consent {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: flex-start !important;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
 }
 .product-app .tutor-panel .tutor-consent input {
-  width: auto !important;
+  width: auto;
   min-width: 14px;
 }
 .product-app .tutor-panel header > button {
-  padding: 5px 10px !important;
+  padding: 5px 10px;
 }
 .product-app .tutor-panel .tutor-prompts button {
   min-height: 36px;
