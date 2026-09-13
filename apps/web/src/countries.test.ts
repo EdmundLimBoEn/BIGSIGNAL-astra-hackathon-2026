@@ -13,6 +13,12 @@ describe("country navigation data", () => {
     expect(searchCountries("SGP")[0].name).toBe("Singapore");
     expect(searchCountries("nothing-matches")).toEqual([]);
   });
+  it("preserves Southeast Asian islands and their selectable geometry", () => {
+    expect(searchCountries("SGP")[0].polygons.length).toBeGreaterThan(0);
+    expect(countryAt(103.82, 1.35)?.id).toBe("SGP");
+    expect(countryAt(101.69, 3.14)?.id).toBe("MYS");
+    expect(countryAt(106.85, -6.2)?.id).toBe("IDN");
+  });
   it("selects land without assigning an ocean click to a country", () => {
     expect(countryAt(2.35, 48.86)?.name).toBe("France");
     expect(countryAt(139.7, 35.7)?.name).toBe("Japan");

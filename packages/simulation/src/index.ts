@@ -2,7 +2,11 @@ import type { CalculationNode, LimitingFactor, Scenario, SimulationResult } from
 import { solvePropagation } from '../../propagation/src';
 import { freeSpacePathLossDb, receivedPowerDbm, thermalNoiseDbm } from './physics';
 import { MODE_PROFILES, requiredSnrForBandwidth } from './modes';
-import { validateScenario } from './validateScenario';
+import { validateScenario, ScenarioValidationError } from './validateScenario';
+import type { PhysicsSettings } from './laboratory';
+
+export * from './laboratory';
+export * from './network';
 
 export { MODE_PROFILES, requiredSnrForBandwidth } from './modes';
 export { validateScenario, ScenarioValidationError } from './validateScenario';
@@ -12,8 +16,9 @@ function node(id: string, label: string, value: number, unit: string, equation?:
   return { id, label, value, unit, ...(equation ? { equation } : {}), ...(children ? { children } : {}) };
 }
 
-function calculate(scenario: Scenario): SimulationResult {
-  const propagation = solvePropagation(scenario);
+function calculate(scenario: Scenario, physics: PhysicsSettings = { mode: 'real' }): SimulationResult {
+  const fantasy = physics.mode === 'fantasy' ? physics : undefined;
+  const propagation = solvePropagation(scenario, fantasy);
   const mode = MODE_PROFILES[scenario.modeId];
   const tx = scenario.transmitter;
   const rx = scenario.receiver;
@@ -31,7 +36,15 @@ function calculate(scenario: Scenario): SimulationResult {
     keys.push('polarization-mismatch');
     warnings.push('Crossed linear polarizations use a 30 dB educational cap. Ideal orthogonal antennas have zero coupling. Circular handedness is not represented.');
   }
-  const fspl = freeSpacePathLossDb(propagation.spreadingDistanceM, scenario.frequencyHz);
+  const fspl = fantasy?.disableFreeSpaceSpreading ? 0 : freeSpacePathLossDb(propagation.spreadingDistanceM, scenario.frequencyHz) - 20 * Math.log10(fantasy?.speedOfLightMultiplier ?? 1);
+  if (fantasy) {
+    warnings.push('FANTASY PHYSICS — THIS IS NOT THE REAL UNIVERSE.');
+    if (fantasy.disableFreeSpaceSpreading) warnings.push('Free-space spreading loss is forced to zero. This violates energy conservation; terrain and antenna losses still apply.');
+    if (fantasy.disableEarthCurvature) warnings.push(scenario.environment.model === 'vhf-terrain' ? 'Earth curvature is disabled for the terrestrial horizon, bulge and ray profile. Terrain remains.' : 'Earth-curvature switch applies only to the terrestrial model. This selected model retains its defined geometry.');
+    if (fantasy.removeIonosphere && scenario.environment.model !== 'hf-skywave') warnings.push('Removing the ionosphere does not change this non-skywave model.');
+    if (fantasy.speedOfLightMultiplier !== 1) warnings.push(`Wave speed is ${fantasy.speedOfLightMultiplier} times c. Spreading, wavelength, diffraction and travel time use that speed. Configured HF critical frequencies remain phenomenological inputs.`);
+    keys.push('fantasy-physics');
+  }
   const power = receivedPowerDbm({
     txPowerDbm: tx.powerDbm, txCableLossDb: tx.feedline.lossDb, txGainDbi: tx.antenna.gainDbi,
     pathLossDb: fspl + propagation.excessLossDb + polarizationLossDb,
@@ -58,7 +71,8 @@ function calculate(scenario: Scenario): SimulationResult {
   keys.push(success === 'failed' ? 'link-failed' : success === 'marginal' ? 'link-marginal' : 'link-good');
   const calculations: CalculationNode[] = [
     ...propagation.calculations,
-    node('fspl', 'Free-space spreading loss', fspl, 'dB', '20 log10(4πdf/c)', [
+    node('fspl', 'Free-space spreading loss', fspl, 'dB', fantasy?.disableFreeSpaceSpreading ? '0 (fantasy override)' : '20 log10(4πdf/c)', [
+      node('wave-speed', 'Wave speed', 299792458 * (fantasy?.speedOfLightMultiplier ?? 1), 'm/s'),
       node('frequency', 'Frequency', scenario.frequencyHz, 'Hz'),
       node('spreading-distance', 'Ray path distance', propagation.spreadingDistanceM, 'm'),
     ]),
@@ -80,6 +94,7 @@ function calculate(scenario: Scenario): SimulationResult {
       node('antenna-temperature', 'Equivalent antenna noise temperature before cable', antennaTemperature, 'K'),
       node('receiver-input-temperature', 'Noise temperature after receiver cable', receiverInputTemperature, 'K', 'Ta/Lrx + Tcable(1 - 1/Lrx)'),
     ]),
+    node('travel-time', 'Candidate path travel time', propagation.spreadingDistanceM / (299792458 * (fantasy?.speedOfLightMultiplier ?? 1)), 's', 'distance / wave speed'),
     node('snr', 'Signal-to-noise ratio', snrDb, 'dB', 'Received power - noise floor'),
     { ...node('required-snr', `${mode.label} required SNR`, requiredSnrDb, 'dB', 'SNRref + 10 log10(Bref / B)'), assumptions: [mode.reference, 'Educational threshold. Receiver filtering and implementation loss are simplified.'] },
     node('link-margin', 'Link margin', linkMarginDb, 'dB', 'SNR - required SNR'),
@@ -100,7 +115,7 @@ function calculate(scenario: Scenario): SimulationResult {
   };
 }
 
-function improvements(scenario: Scenario, base: SimulationResult): LimitingFactor[] {
+function improvements(scenario: Scenario, base: SimulationResult, physics: PhysicsSettings): LimitingFactor[] {
   const candidates: { id: string; label: string; key: string; edit: (candidate: Scenario) => void }[] = [
     { id: 'power', label: scenario.transmitter.powerDbm <= 100 ? 'Increase transmitter power tenfold' : 'Increase transmitter power to the 110 dBm model limit', key: 'more-power', edit: s => { s.transmitter.powerDbm = Math.min(110, s.transmitter.powerDbm + 10); } },
     { id: 'feedline', label: 'Remove feedline loss', key: 'feedline-loss', edit: s => { s.transmitter.feedline.lossDb = 0; s.receiver.feedline.lossDb = 0; } },
@@ -122,7 +137,11 @@ function improvements(scenario: Scenario, base: SimulationResult): LimitingFacto
   return candidates.flatMap(candidate => {
     const changed = structuredClone(scenario);
     candidate.edit(changed);
-    const after = calculate(changed);
+    try { validateScenario(changed); } catch (error) {
+      if (error instanceof ScenarioValidationError) return [];
+      throw error;
+    }
+    const after = calculate(changed, physics);
     const restoresPath = !base.propagationAvailable && after.propagationAvailable;
     const repairsBandwidth = bandwidthInvalid && changed.receiver.bandwidthHz >= profile.minimumBandwidthHz;
     const repairsConstraint = restoresPath || repairsBandwidth;
@@ -138,9 +157,14 @@ function improvements(scenario: Scenario, base: SimulationResult): LimitingFacto
   }).sort((a, b) => b.possibleImprovementDb - a.possibleImprovementDb || a.id.localeCompare(b.id));
 }
 
-export function simulateScenario(scenario: Scenario): SimulationResult {
+export function simulateScenario(scenario: Scenario, physics: PhysicsSettings = { mode: 'real' }): SimulationResult {
+  if (!physics || (physics.mode !== 'real' && physics.mode !== 'fantasy')) throw new RangeError('Unknown physics mode');
+  if (physics.mode === 'fantasy') {
+    for (const key of ['disableEarthCurvature', 'removeIonosphere', 'disableFreeSpaceSpreading'] as const) if (typeof physics[key] !== 'boolean') throw new RangeError(`${key} must be a boolean`);
+    if (!Number.isFinite(physics.speedOfLightMultiplier) || physics.speedOfLightMultiplier < 0.01 || physics.speedOfLightMultiplier > 100) throw new RangeError('Wave speed multiplier must be within 0.01 to 100');
+  }
   const parsed = validateScenario(scenario);
-  const result = calculate(parsed);
-  result.limitingFactors = improvements(parsed, result);
+  const result = calculate(parsed, physics);
+  result.limitingFactors = improvements(parsed, result, physics);
   return result;
 }

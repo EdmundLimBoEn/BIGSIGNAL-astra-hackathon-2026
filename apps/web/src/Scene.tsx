@@ -13,6 +13,8 @@ import type { PropagationPath, Scenario } from "../../../packages/contracts";
 import type { Graphics } from "./missions";
 import { terrainProjection } from "./terrainProjection";
 import landData from "../../../content/land.geojson?raw";
+import lakeData from "../../../content/lakes.geojson?raw";
+import riverData from "../../../content/rivers.geojson?raw";
 import {
   countries,
   countryAt,
@@ -20,6 +22,7 @@ import {
   type Country,
 } from "./countries";
 import { CountryLabels } from "./CountryLabels";
+import { SchematicScene } from "./SchematicScene";
 import "./country-map.css";
 type Navigation = {
   kind: "focus" | "in" | "out" | "left" | "right" | "home";
@@ -159,16 +162,18 @@ function Pulse({
     </mesh>
   );
 }
-// Natural Earth public-domain land polygons, bundled for an offline globe.
-type LandGeometry =
+type MapGeometry =
   | { type: "Polygon"; coordinates: number[][][] }
   | { type: "MultiPolygon"; coordinates: number[][][][] };
-const continents = (
-  JSON.parse(landData) as { features: { geometry: LandGeometry }[] }
-).features.flatMap(({ geometry }) =>
-  geometry.type === "Polygon"
-    ? [geometry.coordinates[0]]
-    : geometry.coordinates.map((p) => p[0]),
+function mapPolygons(raw: string): number[][][][] {
+  return (JSON.parse(raw) as { features: { geometry: MapGeometry }[] }).features.flatMap(({ geometry }) =>
+    geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates,
+  );
+}
+const landPolygons = mapPolygons(landData);
+const lakePolygons = mapPolygons(lakeData);
+const rivers = (JSON.parse(riverData) as { features: { geometry: { type: string; coordinates: number[][] | number[][][] } }[] }).features.flatMap(({ geometry }) =>
+  geometry.type === "LineString" ? [geometry.coordinates as number[][]] : geometry.coordinates as number[][][],
 );
 function Globe({
   graphics,
@@ -181,57 +186,66 @@ function Globe({
 }) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 2048;
-    canvas.height = 1024;
+    canvas.width = 4096;
+    canvas.height = 2048;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#12333e";
-    ctx.fillRect(0, 0, 2048, 1024);
+    const ocean = "#153947";
+    ctx.fillStyle = ocean;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     const project = ([lon, lat]: number[]) => [
-      ((lon + 180) / 360) * 2048,
-      ((90 - lat) / 180) * 1024,
+      ((lon + 180) / 360) * canvas.width,
+      ((90 - lat) / 180) * canvas.height,
     ];
-    for (const polygon of continents) {
+    const trace = (polygon: number[][][]) => {
       ctx.beginPath();
-      polygon.forEach((p, i) => {
-        const [x, y] = project(p);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.closePath();
-      ctx.fillStyle = "#4e806b";
-      ctx.fill();
-      ctx.strokeStyle = "#98c6a0";
-      ctx.lineWidth = 2;
+      for (const ring of polygon) {
+        ring.forEach((p, i) => {
+          const [x, y] = project(p);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+      }
+    };
+    for (const polygon of landPolygons) {
+      trace(polygon);
+      ctx.fillStyle = "#577b68";
+      ctx.fill("evenodd");
+      ctx.strokeStyle = "#90b59a";
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      ctx.save();
-      ctx.clip();
-      ctx.fillStyle = "#9abd83";
-      for (let y = 0; y < 1024; y += 9)
-        for (let x = 0; x < 2048; x += 9) {
-          ctx.globalAlpha = 0.1 + 0.2 * Math.abs(Math.sin(x * 12.7 + y * 8.3));
-          ctx.fillRect(x, y, 2, 2);
-        }
-      ctx.restore();
     }
     for (const country of countries) {
       for (const polygon of country.polygons) {
-        ctx.beginPath();
-        for (const ring of polygon) {
-          ring.forEach((p, i) => {
-            const [x, y] = project(p);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          });
-          ctx.closePath();
-        }
+        trace(polygon);
         if (country.id === selected) {
-          ctx.fillStyle = "#91b94e";
+          ctx.fillStyle = "#9aad5d";
           ctx.fill("evenodd");
         }
-        ctx.strokeStyle = country.id === selected ? "#e4ff99" : "#90b5a7";
-        ctx.lineWidth = country.id === selected ? 3 : 1;
+        ctx.strokeStyle = country.id === selected ? "#e4ff99" : "#789982";
+        ctx.lineWidth = country.id === selected ? 2.5 : 0.7;
         ctx.stroke();
       }
+    }
+    for (const polygon of lakePolygons) {
+      trace(polygon);
+      ctx.fillStyle = ocean;
+      ctx.fill("evenodd");
+      ctx.strokeStyle = "#89aca0";
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "#376774";
+    ctx.lineWidth = 0.8;
+    ctx.lineJoin = "round";
+    for (const river of rivers) {
+      ctx.beginPath();
+      river.forEach((point, i) => {
+        const [x, y] = project(point);
+        if (!i) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
     }
     const map = new THREE.CanvasTexture(canvas);
     map.colorSpace = THREE.SRGBColorSpace;
@@ -249,18 +263,6 @@ function Globe({
       );
     return lines;
   }, []);
-  const outlines = useMemo(
-    () =>
-      continents.map((poly) =>
-        poly.flatMap(([lon, lat], i) => {
-          const next = poly[(i + 1) % poly.length];
-          return Array.from({ length: 2 }, (_, j) =>
-            geo(lat + (next[1] - lat) * j, lon + (next[0] - lon) * j, 20000),
-          );
-        }),
-      ),
-    [],
-  );
   return (
     <>
       <mesh
@@ -283,16 +285,13 @@ function Globe({
         />
         <meshStandardMaterial
           map={texture}
-          color="#c9e8da"
-          roughness={0.85}
-          metalness={0.25}
+          color="#e0eade"
+          roughness={0.95}
+          metalness={0.05}
         />
       </mesh>
       {grid.map((p, i) => (
         <Polyline key={i} points={p} color="#27605a" />
-      ))}
-      {outlines.map((p, i) => (
-        <Polyline key={i} points={p} color="#70a18a" />
       ))}
       <mesh>
         <sphereGeometry args={[2.49, 32, 24]} />
@@ -428,20 +427,13 @@ function Terrain({ graphics, projection }: { graphics: Graphics; projection: Ret
     </>
   );
 }
-class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class Boundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   render() {
-    return this.state.failed ? (
-      <div className="fallback">
-        3D is unavailable on this device. All controls, numeric results, and
-        explanations remain available.
-      </div>
-    ) : (
-      this.props.children
-    );
+    return this.state.failed ? this.props.fallback : this.props.children;
   }
 }
 export function Scene({
@@ -451,8 +443,10 @@ export function Scene({
   scenario,
   paths,
   running,
+  fresnel,
 }: {
   band: string;
+  fresnel?: { fraction: number; radiusM: number }[];
   view: "globe" | "terrain";
   graphics: Graphics;
   scenario: Scenario;
@@ -519,7 +513,7 @@ export function Scene({
       role="region"
       aria-label={`${band} ${view}. ${globe ? "Schematic Earth with geographic transmitter and receiver markers." : "Illustrative ridge between transmitter on the left and receiver on the right."} Paths come from the educational propagation engine. Terrain spacing and heights are exaggerated for visibility.`}
     >
-      <Boundary>
+      {graphics === "POTATO" ? <SchematicScene scenario={scenario} paths={paths} running={running} view={view} fresnel={fresnel}/> : <Boundary fallback={<SchematicScene scenario={scenario} paths={paths} running={running} view={view} fresnel={fresnel}/>} >
         <Canvas
           key={`${band}-${view}`}
           camera={{
@@ -530,13 +524,9 @@ export function Scene({
               : [7, 5, 9],
             fov: 43,
           }}
-          dpr={graphics === "POTATO" ? 1 : [1, 1.5]}
+          dpr={graphics === "BIG" ? [1, 1.5] : 1}
           frameloop={running ? "always" : "demand"}
-          fallback={
-            <div className="fallback">
-              WebGL unavailable. Use the text results below.
-            </div>
-          }
+          fallback={<SchematicScene scenario={scenario} paths={paths} running={running} view={view} fresnel={fresnel}/>}
         >
           <ambientLight intensity={1.8} />
           <directionalLight
@@ -572,6 +562,20 @@ export function Scene({
           ) : (
             <Terrain graphics={graphics} projection={projection} />
           )}
+          {!globe && fresnel && fresnel.length > 0 && <group>
+            {fresnel.filter((_, i) => i % 4 === 0).map(({ fraction, radiusM }) => {
+              const tx = projection.stations[0];
+              const rx = projection.stations[1];
+              const x = tx.x + fraction * (rx.x - tx.x);
+              const y = tx.tip + fraction * (rx.tip - tx.tip);
+              const radius = projection.metresToScene(radiusM);
+              const ring = Array.from({ length: 49 }, (_, i) => {
+                const angle = i / 48 * Math.PI * 2;
+                return new THREE.Vector3(x, y + Math.cos(angle) * radius, Math.sin(angle) * radius);
+              });
+              return <Polyline key={fraction} points={ring} color="#80caca" />;
+            })}
+          </group>}
           {converted.map((points, i) => (
             <group key={i}>
               <Polyline points={points} />
@@ -580,8 +584,8 @@ export function Scene({
             </group>
           ))}
         </Canvas>
-      </Boundary>
-      {globe && (
+      </Boundary>}
+      {globe && graphics !== "POTATO" && (
         <div className="country-toolbar">
           <label htmlFor="country-search">EXPLORE THE WORLD</label>
           <div className="country-search-wrap">
@@ -623,7 +627,7 @@ export function Scene({
           </button>
         </div>
       )}
-      <div className="map-navigation" aria-label="Map navigation">
+      {graphics !== "POTATO" && <div className="map-navigation" aria-label="Map navigation">
         <button
           aria-label="Zoom in"
           title="Zoom in"
@@ -678,8 +682,8 @@ export function Scene({
             </button>
           </>
         )}
-      </div>
-      {globe && selected && (
+      </div>}
+      {globe && graphics !== "POTATO" && selected && (
         <div className="country-card" aria-live="polite">
           <span className="eyebrow">{selected.region} / SELECTED COUNTRY</span>
           <h3>{selected.name}</h3>
@@ -697,13 +701,13 @@ export function Scene({
           </button>
         </div>
       )}
-      <div className={`scene-key ${globe ? "country-map-key" : ""}`}>
+      {graphics !== "POTATO" && <div className={`scene-key ${globe ? "country-map-key" : ""}`}>
         <span>● TX / BASE CAMP</span>
         <span>● RX / REMOTE TEAM</span>
         {globe && (
           <span>◌ {band === "HF" ? "IONOSPHERE" : "SCHEMATIC EARTH"}</span>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

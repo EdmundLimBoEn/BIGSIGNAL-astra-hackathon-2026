@@ -25,3 +25,13 @@ Educational text lives in `content/explanations`. The engine returns explanation
 Simulation runs on SEND IT, never in the render loop. Graphics modes change rendering detail without changing physics. The app bundles its data and runs without a cloud backend. A production service worker caches the built app for offline reloads.
 
 Use root `validation/` for physics and numerical checks. Web integration tests exercise mission inputs, engine responses, persisted settings, and terrain projection. Run the full test suite and production build before publishing changes. Browser checks must also cover the VHF power and height experiment and HF above-MUF behavior.
+
+## Product domains
+
+The product composes the existing scenes and version 1 RF contracts with a typed lesson registry in `content/lessons.ts`. `packages/missions/product.ts` owns assessment and portable-file validation. The lesson runner records prediction, attempts, transfer answers, and applied evidence without changing simulation accuracy across tiers.
+
+`ProductApp` coordinates navigation and the working experiment. `LabWorkspace` runs the engine on SEND IT and renders results, comparisons, and teacher checks. `productStorage` recovers the working experiment, notebook entries, and mastery independently. Imported classroom data passes the same schema parser used for export.
+
+Energy, impedance, cable, receiver, Fresnel, and fantasy helpers live in `packages/simulation/src/laboratory.ts`. Networks are an additive graph domain in `network.ts`; each edge invokes the same Scenario engine for both directions. No existing Scenario or SimulationResult field was removed or renamed.
+
+The custom wire editor stores geometric points and segments separately. It does not infer gain, impedance, or resonance from arbitrary wire geometry. The SVG scene fallback projects returned path points and uses the same terrain projection as the 3D view.

@@ -19,7 +19,9 @@ export function knifeEdgeLossDb(v: number): number {
   return v <= -0.78 ? 0 : 6.9 + (20/Math.LN10)*Math.asinh(v-0.1);
 }
 
-export function solvePropagation(scenario: Scenario): PropagationSolution {
+export interface PropagationOverrides { disableEarthCurvature?: boolean; removeIonosphere?: boolean; speedOfLightMultiplier?: number }
+
+export function solvePropagation(scenario: Scenario, overrides: PropagationOverrides = {}): PropagationSolution {
   const { transmitter: tx, receiver: rx, environment: env } = scenario;
   const a = { ...tx.position, altitudeM: tx.position.altitudeM + tx.antenna.heightM };
   const b = { ...rx.position, altitudeM: rx.position.altitudeM + rx.antenna.heightM };
@@ -36,7 +38,7 @@ export function solvePropagation(scenario: Scenario): PropagationSolution {
     return result;
   }
   if (env.model === "vhf-terrain") {
-    const effectiveR = EARTH_RADIUS_M*env.effectiveEarthRadiusFactor;
+    const effectiveR = overrides.disableEarthCurvature ? Infinity : EARTH_RADIUS_M*env.effectiveEarthRadiusFactor;
     const sampleRay = (start: GeoPosition, end: GeoPosition) => {
       const span = greatCircleDistanceM(start,end);
       return Array.from({ length: 33 }, (_, i) => {
@@ -47,9 +49,9 @@ export function solvePropagation(scenario: Scenario): PropagationSolution {
       });
     };
     result.paths = [{ type: "direct", points: sampleRay(a,b) }];
-    const horizon = Math.sqrt(2*effectiveR*Math.max(0, a.altitudeM))+Math.sqrt(2*effectiveR*Math.max(0, b.altitudeM));
+    const horizon = overrides.disableEarthCurvature ? Infinity : Math.sqrt(2*effectiveR*Math.max(0, a.altitudeM))+Math.sqrt(2*effectiveR*Math.max(0, b.altitudeM));
     result.spreadingDistanceM = Math.hypot(distance, b.altitudeM-a.altitudeM);
-    result.calculations.push(node("radio-horizon", "Effective-Earth radio horizon", horizon, "m", "sqrt(2kRhTX) + sqrt(2kRhRX)"));
+    if (!overrides.disableEarthCurvature) result.calculations.push(node("radio-horizon", "Effective-Earth radio horizon", horizon, "m", "sqrt(2kRhTX) + sqrt(2kRhRX)"));
     result.warnings.push("Educational effective-Earth and single knife-edge approximation; excludes terrain profiles, reflections, foliage and weather.");
     if (distance > horizon) {
       result.available = false;
@@ -63,7 +65,7 @@ export function solvePropagation(scenario: Scenario): PropagationSolution {
       const bulge = d1*d2/(2*effectiveR);
       const h = altitudeM+bulge-(a.altitudeM+(b.altitudeM-a.altitudeM)*fraction);
       if (Math.abs(h)/Math.min(d1,d2) > 0.2) result.warnings.push("Obstruction geometry exceeds the small-angle knife-edge approximation; diffraction loss has reduced reliability.");
-      const wavelength = 299_792_458/scenario.frequencyHz;
+      const wavelength = 299_792_458*(overrides.speedOfLightMultiplier ?? 1)/scenario.frequencyHz;
       const fresnel = Math.sqrt(wavelength*d1*d2/distance);
       const v = h*Math.sqrt(2)/fresnel;
       result.excessLossDb = knifeEdgeLossDb(v);
@@ -80,6 +82,13 @@ export function solvePropagation(scenario: Scenario): PropagationSolution {
       }
     }
     if (result.available && result.excessLossDb === 0) result.explanationKeys.push("line-of-sight");
+    return result;
+  }
+  if (overrides.removeIonosphere) {
+    result.available = false;
+    result.paths = [];
+    result.warnings.push("The fantasy universe has no ionosphere. No HF skywave route is available; direct terrestrial HF is not modeled here.");
+    result.explanationKeys.push("fantasy-no-ionosphere");
     return result;
   }
   const shell = EARTH_RADIUS_M+env.effectiveHeightM;
