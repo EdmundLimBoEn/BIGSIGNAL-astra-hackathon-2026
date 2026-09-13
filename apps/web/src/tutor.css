@@ -108,7 +108,7 @@
   background: #293328;
   border-color: #47513d;
 }
-.tutor-message strong {
+.tutor-message > strong {
   font-size: 10px;
   letter-spacing: 0.06em;
   color: #d3ee79;
@@ -119,6 +119,74 @@
   font-size: 13px;
   line-height: 1.6;
   margin: 6px 0 0;
+}
+.tutor-markdown {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+.tutor-markdown p {
+  white-space: normal;
+  margin: 8px 0;
+}
+.tutor-markdown h1,
+.tutor-markdown h2,
+.tutor-markdown h3,
+.tutor-markdown h4,
+.tutor-markdown h5,
+.tutor-markdown h6 {
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 14px 0 6px;
+}
+.tutor-markdown ul,
+.tutor-markdown ol {
+  padding-left: 22px;
+  margin: 8px 0;
+}
+.tutor-markdown li + li {
+  margin-top: 4px;
+}
+.tutor-markdown a {
+  color: #d3ee79;
+  text-decoration: underline;
+}
+.tutor-markdown code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  background: #101b15;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.tutor-markdown pre {
+  overflow-x: auto;
+  padding: 10px;
+  background: #101b15;
+  border-radius: 6px;
+}
+.tutor-markdown pre code {
+  padding: 0;
+  white-space: pre;
+}
+.tutor-markdown blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid #718448;
+}
+.tutor-markdown table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.tutor-markdown th,
+.tutor-markdown td {
+  border: 1px solid #334238;
+  padding: 6px 8px;
+  text-align: left;
+}
+.tutor-markdown > :last-child {
+  margin-bottom: 0;
 }
 .tutor-thinking {
   font-size: 12px;

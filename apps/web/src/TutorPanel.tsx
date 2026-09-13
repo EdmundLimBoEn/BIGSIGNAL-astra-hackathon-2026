@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { TutorMarkdown } from "./TutorMarkdown";
 import type {
   TutorContext,
   TutorMessage,
@@ -447,7 +448,11 @@ export function TutorPanel({ context }: { context: TutorContext }) {
                   {m.voice ? " · voice" : ""}
                   {m.contextLabel ? ` · ${m.contextLabel}` : ""}
                 </strong>
-                <p>{m.content}</p>
+                {m.role === "assistant" ? (
+                  <TutorMarkdown>{m.content}</TutorMarkdown>
+                ) : (
+                  <p>{m.content}</p>
+                )}
               </article>
             ))}
             {busy && (
