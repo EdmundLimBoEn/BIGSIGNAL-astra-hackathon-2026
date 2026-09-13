@@ -6,6 +6,7 @@ import type {
 } from "../../../packages/contracts";
 import { unavailableHfExplanation } from "../../../content/explanations/unavailablePath";
 import { explanations } from "../../../content/explanations";
+import { metricHelp } from "../../../content/explanations/radio-guide";
 
 export function MathNode({ node }: { node: CalculationNode }) {
   return (
@@ -64,7 +65,7 @@ export function Results({
       <div className="result-tabs">
         {(["WHY", "MATH", "TRY"] as const).map((t) => (
           <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
-            {t === "TRY" ? "WHAT SHOULD I TRY?" : t}
+            {t === "TRY" ? "What can I change?" : t === "WHY" ? "WHY · What happened" : "MATH · See the evidence"}
           </button>
         ))}
       </div>
@@ -84,8 +85,8 @@ export function Results({
               {result.success === "good"
                 ? "SIGNAL MADE IT"
                 : result.success === "marginal"
-                  ? "JUST ABOUT."
-                  : "NOPE."}
+                  ? "WEAK CONNECTION"
+                  : "NO CLEAR CONNECTION"}
             </b>
             <span>
               {result.propagationAvailable
@@ -95,17 +96,18 @@ export function Results({
           </div>
           <div className="metric-grid">
             {[
-              ["Received", result.propagationAvailable ? result.receivedPowerDbm : null, "dBm"],
-              ["Noise floor", result.noiseFloorDbm, "dBm"],
-              ["SNR", result.propagationAvailable ? result.snrDb : null, "dB"],
-              ["Link margin", result.propagationAvailable ? result.linkMarginDb : null, "dB"],
-            ].map(([label, value, unit]) => (
+              ["Received", result.propagationAvailable ? result.receivedPowerDbm : null, "dBm", metricHelp.received],
+              ["Noise floor", result.noiseFloorDbm, "dBm", metricHelp.noise],
+              ["SNR", result.propagationAvailable ? result.snrDb : null, "dB", metricHelp.snr],
+              ["Link margin", result.propagationAvailable ? result.linkMarginDb : null, "dB", metricHelp.margin],
+            ].map(([label, value, unit, help]) => (
               <div key={label}>
                 <span>{label}</span>
                 <b className={value === null ? "metric-unavailable" : undefined}>
                   {value === null ? "Unavailable" : Number(value).toFixed(1)}
                   <small>{value === null ? "No modeled path" : ` ${unit}`}</small>
                 </b>
+                <small className="metric-explanation">{help}</small>
               </div>
             ))}
           </div>

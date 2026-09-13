@@ -28,7 +28,7 @@ import {
 } from "./productStorage";
 import type { ProductState } from "./productStorage";
 import type { PhysicsSettings } from "../../../packages/simulation/src/laboratory";
-import { RadioBenchIllustration } from "./RadioBenchIllustration";
+import { RescueScene } from "./RescueScene";
 import "./product.css";
 import "./workspace.css";
 
@@ -368,6 +368,7 @@ function Product() {
   );
   return (
     <div
+      data-page={page}
       className={`product-app ${page === "lab" || page === "unreasonable" || (page === "learn" && lesson && state.onboarded) ? "focused-app" : ""}`}
     >
       <a className="skip-link" href="#main-content">
@@ -394,10 +395,11 @@ function Product() {
           (p) => (
             <button
               key={p}
+              data-section={p}
               aria-current={page === p ? "page" : undefined}
               onClick={() => navigate(p)}
             >
-              {pageLabels[p]}
+              <span className="nav-section-dot" aria-hidden="true" />{pageLabels[p]}
             </button>
           ),
         )}
@@ -431,45 +433,52 @@ function Product() {
         </div>
       )}
       <main id="main-content">
-        {!state.onboarded && page === "learn" ? (
+        {page === "learn" && (!state.onboarded || !lesson) ? (
           <section className="onboarding">
             <div>
               <span className="eyebrow">
-                RADIO SCIENCE, BY EXPERIMENT
+                WHEN CONNECTION BECOMES A LIFELINE
               </span>
               <h1>
-                Make contact.<br />
-                <em>Find out how.</em>
+                Phones are down.<br />
+                <em>Hope isn't.</em>
               </h1>
               <p>
-                Two radios. No wire. A little science.
-                <br />
-                Build a connection, break it, and find out why.
+                A hospital needs supplies. A relief team is waiting.
+                Discover how radio can help a message cross the distance—when everyday connections fail.
               </p>
               <button
                 className="primary"
-                onClick={() => openLesson(lessons[0])}
+                onClick={() => navigate("tsunami")}
               >
-                Build your first link ↗
+                Enter the hospital mission ↗
               </button>
               <button
                 className="text-button"
-                onClick={() => {
-                  setState((s) => ({ ...s, onboarded: true }));
-                  setPage("learn");
-                }}
+                onClick={() => openLesson(lessons[0])}
               >
-                I know a little radio. Show me the course.
+                New to radio? Start with the guided lessons.
               </button>
               <div className="onboard-facts">
                 <span>No hardware needed</span>
-                <span>Works offline</span>
+                <span>Local simulation</span>
                 <span>Learn by trying</span>
               </div>
             </div>
-            <RadioBenchIllustration />
+            <RescueScene />
           </section>
         ) : null}
+        {page === "learn" && (!state.onboarded || !lesson) && (
+          <section className="mission-launchpad" aria-labelledby="choose-experience">
+            <div className="launchpad-heading"><div><span className="eyebrow">ONE IDEA, MANY WAYS TO EXPLORE</span><h2 id="choose-experience">Start with a human connection.</h2></div><p>Choose a story. Change one thing. See why it matters.</p></div>
+            <div className="launchpad-cards">
+              <button data-color="teal" onClick={() => openLesson(lessons[0])}><span className="launchpad-icon" aria-hidden="true">≋</span><small>START HERE · GUIDED</small><h3>Make your first connection</h3><p>Two radios and a simple question: will the message get through?</p><span className="launchpad-link">Learn the basics <span aria-hidden="true">↗</span></span></button>
+              <button data-color="amber" onClick={() => navigate("tsunami")}><span className="launchpad-icon" aria-hidden="true">♡</span><small>A HUMAN STORY · HOSPITAL RADIO</small><h3>Help a message reach home</h3><p>Phones are down. A hospital operator needs to reach a relief hub.</p><span className="launchpad-link">When phones fail <span aria-hidden="true">↗</span></span></button>
+              <button data-color="blue" onClick={() => navigate("lab")}><span className="launchpad-icon" aria-hidden="true">◎</span><small>YOUR EXPERIMENT · OPEN LAB</small><h3>See what changes the signal</h3><p>Explore the map, tune a radio, and inspect the reason behind each result.</p><span className="launchpad-link">Explore the radio lab <span aria-hidden="true">↗</span></span></button>
+            </div>
+            <div className="explain-strip"><span>EXPLAIN IT TO ANYONE</span><p>“We send a message. The world gets in the way. Let's change the setup and see if it arrives.”</p></div>
+          </section>
+        )}
         {state.onboarded && page === "learn" && !lesson && (
           <>
             <div className="page-heading course-heading">

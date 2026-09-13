@@ -26,6 +26,7 @@ import { type Graphics } from "./missions";
 import { Scene } from "./Scene";
 import { LabControls, NumberField } from "./LabControls";
 import { Results } from "./Results";
+import { RadioGuide } from "./RadioGuide";
 import { AdvancedLab } from "./AdvancedLab";
 import {
   evaluateTeacherChallenge,
@@ -212,6 +213,7 @@ export function LabWorkspace({
     );
   return (
     <div className="experiment-workspace">
+      <RadioGuide />
       <div className="mobile-workspace-switch" aria-label="Workspace panels">
         <button
           aria-pressed={mobilePanel === "workspace"}
