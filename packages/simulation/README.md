@@ -1,0 +1,144 @@
+# Computer A backend reference
+
+`@bigsignal/simulation` supplies the deterministic RF engine for Computer B's globe and result panels. The core A1 through A9 scope is implemented. The engine runs locally without a server, network requests, credentials, or a database.
+
+This handoff belongs to the `engine` branch. Computer B's concurrent `experience` work has not been integrated. Computer A's backend work does not change the UI. The integration agent can record the exact checkout with `git rev-parse HEAD` and follow [CONTRIBUTING.md](../../CONTRIBUTING.md) for the merge checkpoint.
+
+## Package API
+
+```ts
+import {
+	simulateScenario,
+	validateScenario,
+	ScenarioValidationError,
+	MODE_PROFILES,
+	type Scenario,
+	type SimulationResult,
+} from '@bigsignal/simulation';
+import { loadExampleScenario, scenarioIds } from '@bigsignal/simulation/examples';
+
+const scenario: Scenario = loadExampleScenario('hf-day');
+const result: SimulationResult = simulateScenario(scenario);
+
+function simulateImportedJson(input: unknown): SimulationResult {
+	try {
+		return simulateScenario(validateScenario(input));
+	} catch (error) {
+		if (error instanceof ScenarioValidationError) {
+			console.error(error.issues);
+		}
+		throw error;
+	}
+}
+```
+
+`simulateScenario(scenario: Scenario): SimulationResult` validates its input before calculation and does not mutate it. `validateScenario(input: unknown): Scenario` returns a new object containing supported fields. Invalid inputs throw `ScenarioValidationError`, whose `issues: string[]` describes the invalid fields. Invalid inputs do not return a failed radio link.
+
+`scenarioIds` is a frozen array. `loadExampleScenario(id)` returns a fresh mutable copy and throws `RangeError` for unknown IDs. `requiredSnrForBandwidth` is also exported. Low-level `freeSpacePathLossDb`, `receivedPowerDbm`, and `thermalNoiseDbm` are available through `@bigsignal/simulation/physics`.
+
+## Input requirements
+
+The contract is schema version 1. The authoritative types are in [packages/contracts/index.ts](../contracts/index.ts). The exact bounds and required nested fields are in [validateScenario.ts](src/validateScenario.ts).
+
+- Frequency uses Hz. Power uses dBm. Gain uses dBi. Feedline loss uses nonnegative dB.
+- Position uses latitude and longitude in degrees. Position altitude is meters above mean sea level. Antenna height is meters above that position.
+- Antenna tips must be at least 1 meter apart. A terrain obstruction must be at least 1 meter from each endpoint along the surface.
+- Time is a valid UTC calendar timestamp ending in `Z`, such as `2026-09-13T11:20:00.000Z`.
+- `modeId` must be `fm-voice`, `ssb`, `cw`, or `ft8`.
+- Every environment requires `temperatureK`. Optional `externalNoiseDb` defaults to zero and describes antenna noise above that ambient temperature.
+- `free-space` needs no additional environment fields.
+- `vhf-terrain` requires `effectiveEarthRadiusFactor` within 1 to 2. Its optional obstruction uses an interior path `fraction` and an altitude in meters above mean sea level.
+- `hf-skywave` accepts 1 to 30 MHz. It requires shell height, day and night critical frequencies, day and night absorption at 10 MHz, ground reflection loss, and integer `maxHops`. The presets supply these fields.
+
+## Result semantics
+
+`receivedPowerDbm`, `noiseFloorDbm`, `snrDb`, `requiredSnrDb`, and `linkMarginDb` share the same receiver budget. `calculations` contains numeric values, units, formulas, and assumptions. `warnings`, `confidence`, and `explanationKeys` carry model limitations and teaching hooks. Educational text belongs in Computer B's `content/explanations`.
+
+| Condition | `success` |
+| --- | --- |
+| No supported path, receiver bandwidth below the mode minimum, or margin below 0 dB | `failed` |
+| Supported path, sufficient bandwidth, and margin from 0 dB to below 6 dB | `marginal` |
+| Supported path, sufficient bandwidth, and margin at least 6 dB | `good` |
+
+When `propagationAvailable` is false, numeric power, SNR, and margin describe a hypothetical candidate route. They do not predict reception. An above-MUF HF result can still include an escaping ray for the globe. The UI renders that supplied ray and uses `success` plus `propagationAvailable` for reception state. Positive margin alone does not establish a working link.
+
+`limitingFactors` ranks simulated counterfactual changes by `possibleImprovementDb`. Ordinary entries have positive potential improvement and negative `impactDb`. A change that repairs path availability or minimum bandwidth has both values set to zero because its effect cannot be represented as a reliable dB gain. Its label and explanation key identify the repair. Such a repair does not guarantee enough margin for reception.
+
+## Globe coordinates
+
+The engine uses a spherical Earth with radius `6_371_000` meters. Geographic path points use `lat`, `lon`, and `altitudeM`. Endpoint altitude already includes antenna height. Adding antenna height again moves the endpoint incorrectly.
+
+For latitude `lat` and longitude `lon` converted to radians, the geographic Cartesian convention is:
+
+```text
+r = 6_371_000 + altitudeM
+X = r * cos(lat) * cos(lon)
+Y = r * cos(lat) * sin(lon)
+Z = r * sin(lat)
+```
+
+The north pole is positive Z. A renderer with a different up axis applies one consistent axis transform to the globe and every path. Render scale may change all lengths uniformly.
+
+Free-space paths contain endpoint chords. VHF paths contain sampled effective-Earth rays, with obstruction vertices for diffraction. HF paths contain shell and ground vertices joined by straight Cartesian chord segments. A decorative spline or arbitrary altitude lift would change the depicted RF geometry. Great-circle interpolation handles the antimeridian and chooses a deterministic plane for antipodal endpoints.
+
+The engine runs on SEND IT or a deliberate preview update. React and globe animation do not calculate RF loss, MUF, noise, margin, or rankings.
+
+## Model assumptions
+
+- Free space uses isotropic far-field spreading with configured antenna gains. It ignores Earth and terrain blockage, including chords through Earth.
+- VHF uses an effective-Earth horizon and at most one knife edge. It does not model terrain profiles, foliage, reflections, weather, smooth-Earth diffraction, or troposcatter. Beyond-horizon paths are unavailable.
+- HF uses one effective spherical shell and equal hop spacing. MUF and hop feasibility use sea-level endpoint geometry. Ray length includes the supplied endpoint heights. Local midpoint solar hour drives a cosine daylight factor, independent of season and latitude.
+- HF absorption scales with inverse frequency squared and hop count. Intermediate ground contacts add the configured reflection loss. There are no live ionosonde data, solar-cycle forecasts, fading, magnetoionic effects, or operational propagation guarantees.
+- Antenna gain is a supplied scalar. Antenna type and feedline length are descriptive inputs. The engine does not solve antenna shape, orientation, resonant gain, or cable loss from length.
+- Matching known polarizations incur no fixed loss. Linear-to-circular mismatch incurs about 3.01 dB. Crossed linear polarizations use a 30 dB educational cap. Unknown polarization assumes a match. HF applies no fixed polarization penalty because rotation is unresolved. Circular handedness is absent.
+- Antenna noise temperature is `temperatureK * 10^(externalNoiseDb/10)`. The RX cable attenuates that noise and contributes thermal noise at `temperatureK`. Receiver noise figure uses a 290 K reference. Antenna loss temperature and impedance mismatch are unresolved.
+- Mode thresholds are approximate. `MODE_PROFILES` supplies the reference and confidence for each mode. Required SNR changes by `10 log10(referenceBandwidthHz / receiverBandwidthHz)`. This bandwidth normalization prevents a fictitious margin gain from narrowing the measurement bandwidth. Filters below the mode minimum fail even if the numeric margin is positive.
+
+| Mode | Reference SNR | Reference bandwidth | Minimum receiver bandwidth |
+| --- | --- | --- | --- |
+| FM voice | 12 dB | 12,500 Hz | 12,500 Hz |
+| SSB | 10 dB | 2,400 Hz | 2,400 Hz |
+| CW | 3 dB | 500 Hz | 250 Hz |
+| FT8 | -21 dB | 2,500 Hz | 50 Hz |
+
+FM's threshold is educational input SNR, not a conversion from a 12 dB SINAD specification. No mode profile guarantees decoding or intelligibility.
+
+## Bundled presets and fixtures
+
+| ID | Purpose |
+| --- | --- |
+| `vhf-clear` | VHF line of sight |
+| `vhf-ridge` | Single ridge and a noisy receiver |
+| `vhf-ridge-power` | Ridge with tenfold TX power |
+| `vhf-ridge-height` | Ridge with a 15 m TX antenna |
+| `vhf-horizon` | Beyond the modeled radio horizon |
+| `hf-day` | Daytime skywave |
+| `hf-night` | Same circuit at night |
+| `hf-above-muf` | Escaping HF ray |
+| `hf-absorption` | Low-frequency daytime absorption |
+| `hf-multihop` | Multiple skywave hops |
+| `hf-ft8` | Weak-signal FT8 budget |
+| `microwave-clear` | 2.4 GHz directional link with an obstruction |
+
+`validation/fixtures/demo-scenarios.json` and `validation/fixtures/demo-results.json` contain objects keyed by these IDs. The export command regenerates them from current code. `--check` verifies that they match the engine. They let Computer B inspect deterministic inputs and outputs before the integration checkpoint.
+
+## Repository commands
+
+The following commands run from the repository root with Bun:
+
+```sh
+bun install --frozen-lockfile
+bun run packages/simulation/src/cli.ts --list
+bun run packages/simulation/src/cli.ts --example hf-day
+bun run packages/simulation/src/cli.ts --input scenario.json
+bun run validation/export-demo-fixtures.ts
+bun run validation/export-demo-fixtures.ts --check
+bun run test:physics
+bun run test
+bun run build
+git rev-parse HEAD
+```
+
+The CLI prints JSON results to stdout. Errors use JSON on stderr and exit code 1. A JSON file with invalid scenario fields includes an `issues` array.
+
+Core scope covers units, FSPL, link budgets, noise, mode profiles, terrain, simplified HF, counterfactual ranking, and validation. Tutor agents, cloud services, voice, custom NEC antenna solving, and Computer B's globe UI are outside this backend implementation.

@@ -131,6 +131,8 @@ export interface SimulationResult {
 
   probabilityOfSuccess?: number;
 
+  propagationAvailable: boolean;
+
   success:
     | "good"
     | "marginal"
@@ -157,10 +159,34 @@ export interface SimulationResult {
 }
 
 
-export interface EnvironmentConfig {
-  model: "free-space";
+export interface EnvironmentBase {
   temperatureK: number;
+  externalNoiseDb?: number;
 }
+
+export interface TerrainObstruction {
+  fraction: number;
+  altitudeM: number;
+}
+
+export type EnvironmentConfig = EnvironmentBase & (
+  | { model: "free-space" }
+  | {
+      model: "vhf-terrain";
+      effectiveEarthRadiusFactor: number;
+      obstruction?: TerrainObstruction;
+    }
+  | {
+      model: "hf-skywave";
+      effectiveHeightM: number;
+      criticalFrequencyMHzDay: number;
+      criticalFrequencyMHzNight: number;
+      absorptionDbAt10MHzDay: number;
+      absorptionDbAt10MHzNight: number;
+      groundReflectionLossDb: number;
+      maxHops: number;
+    }
+);
 
 export interface SimulationTime {
   utcIso: string;

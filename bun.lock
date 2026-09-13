@@ -5,6 +5,8 @@
     "": {
       "name": "bigsignal",
       "dependencies": {
+        "@bigsignal/contracts": "workspace:*",
+        "@bigsignal/simulation": "workspace:*",
         "@react-three/fiber": "9.7.0",
         "react": "19.2.8",
         "react-dom": "19.2.8",
@@ -25,9 +27,21 @@
       "name": "@bigsignal/contracts",
       "version": "0.1.0",
     },
+    "packages/propagation": {
+      "name": "@bigsignal/propagation",
+      "version": "0.1.0",
+      "dependencies": {
+        "@bigsignal/contracts": "workspace:*",
+      },
+    },
     "packages/simulation": {
       "name": "@bigsignal/simulation",
       "version": "0.1.0",
+      "dependencies": {
+        "@bigsignal/contracts": "workspace:*",
+        "@bigsignal/propagation": "workspace:*",
+        "@bigsignal/units": "workspace:*",
+      },
     },
     "packages/units": {
       "name": "@bigsignal/units",
@@ -38,6 +52,8 @@
     "@babel/runtime": ["@babel/runtime@7.29.7", "", {}, "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="],
 
     "@bigsignal/contracts": ["@bigsignal/contracts@workspace:packages/contracts"],
+
+    "@bigsignal/propagation": ["@bigsignal/propagation@workspace:packages/propagation"],
 
     "@bigsignal/simulation": ["@bigsignal/simulation@workspace:packages/simulation"],
 

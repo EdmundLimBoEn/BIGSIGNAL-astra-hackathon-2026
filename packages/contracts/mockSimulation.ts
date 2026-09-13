@@ -3,6 +3,7 @@ import type { Scenario, SimulationResult } from "./index";
 export function mockSimulation(_scenario: Scenario): SimulationResult {
   return {
     schemaVersion: 1,
+    propagationAvailable: true,
     receivedPowerDbm: -108,
     noiseFloorDbm: -113,
     snrDb: 5,

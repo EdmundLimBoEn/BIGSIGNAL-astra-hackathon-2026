@@ -22,8 +22,9 @@ export function thermalNoiseDbm(bandwidthHz: number, noiseFigureDb = 0, temperat
   positive(temperatureK, 'temperatureK');
   finite(noiseFigureDb, 'noiseFigureDb');
   if (noiseFigureDb < 0) throw new RangeError('noiseFigureDb must be nonnegative');
-  const result = 10 * (Math.log10(BOLTZMANN_J_PER_K) + Math.log10(temperatureK)
-    + Math.log10(bandwidthHz)) + 30 + noiseFigureDb;
+  const receiverTemperatureK = 290 * (10 ** (noiseFigureDb / 10) - 1);
+  const result = 10 * (Math.log10(BOLTZMANN_J_PER_K)
+    + Math.log10(temperatureK + receiverTemperatureK) + Math.log10(bandwidthHz)) + 30;
   finite(result, 'noise floor');
   return result;
 }

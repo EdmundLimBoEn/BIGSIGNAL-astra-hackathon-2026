@@ -4,6 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./physics": "./src/physics.ts"
+    "./physics": "./src/physics.ts",
+    ".": "./src/index.ts",
+    "./examples": "./examples/scenarios.ts"
+  },
+  "dependencies": {
+    "@bigsignal/contracts": "workspace:*",
+    "@bigsignal/units": "workspace:*",
+    "@bigsignal/propagation": "workspace:*"
   }
 }
