@@ -5,10 +5,10 @@
 - [x] Preserve the finalized build plan.
 - [x] Document machine ownership and integration rules.
 - [x] Create the planned directory layout.
-- [ ] Install TypeScript, React, Vite, Three.js, React Three Fiber, Zustand, and Vitest.
-- [ ] Add `dev`, `build`, `test`, and `test:physics` scripts.
+- [x] Install TypeScript, React, Vite, Three.js, React Three Fiber, Zustand, and Vitest.
+- [x] Add `dev`, `build`, `test`, and `test:physics` scripts.
 - [ ] Agree on complete version 1 contracts.
-- [ ] Add deterministic mock simulation and example scenarios.
+- [x] Add deterministic mock simulation and example scenarios.
 - [ ] Verify the build and tests from a clean install.
 - [ ] Start both computers from the same tested bootstrap commit.
 
