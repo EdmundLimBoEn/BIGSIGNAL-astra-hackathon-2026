@@ -46,6 +46,9 @@ The contract is schema version 1. The authoritative types are in [packages/contr
 - Time is a valid UTC calendar timestamp ending in `Z`, such as `2026-09-13T11:20:00.000Z`.
 - `modeId` must be `fm-voice`, `ssb`, `cw`, or `ft8`.
 - Every environment requires `temperatureK`. Optional `externalNoiseDb` defaults to zero and describes antenna noise above that ambient temperature.
+- Authored band defaults use median outdoor man-made noise factors from [ITU-R P.372-17](https://www.itu.int/rec/R-REC-P.372-17-202408-I/en), referenced to 290 K. The quiet-rural HF model is `Fa = 53.6 - 28.6 log10(f_MHz)` over 0.3 to 30 MHz. The application uses 29.43 dB at 7 MHz, a published rural 6 dB value near 140 MHz for the 146 MHz VHF preset, and the 0 dB thermal baseline at 433 MHz and 2.4 GHz.
+- Noise factor is highly location, season, time, and percentile dependent. These are teaching defaults, not live measurements. Explicit band and propagation-model switches load the matching preset. Ordinary frequency and noise edits remain independent. `simulateScenario` never chooses or infers a band-noise default.
+- `vhf-ridge` deliberately retains a 47 dB adverse local-interference override so the recovery lesson still fails before the learner changes the setup. That value is not presented as average VHF background noise.
 - `free-space` needs no additional environment fields.
 - `vhf-terrain` requires `effectiveEarthRadiusFactor` within 1 to 2. Its optional obstruction uses an interior path `fraction` and an altitude in meters above mean sea level.
 - `hf-skywave` accepts 1 to 30 MHz. It requires shell height, day and night critical frequencies, day and night absorption at 10 MHz, ground reflection loss, and integer `maxHops`. The presets supply these fields.

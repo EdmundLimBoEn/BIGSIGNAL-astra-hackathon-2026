@@ -8,6 +8,10 @@ import type {
 } from "../../contracts";
 import { simulateScenario, validateScenario } from "./index";
 import {
+  defaultExternalNoiseDbForBand,
+  quietRuralNoiseFactorDb,
+} from "./bandNoise";
+import {
   DEFAULT_BATTERY,
   estimateBattery,
   type BatteryInput,
@@ -410,7 +414,7 @@ export function createDisasterNetwork(id: DisasterPresetId): NetworkScenario {
     ? {
         model: "hf-skywave",
         temperatureK: 290,
-        externalNoiseDb: 25,
+        externalNoiseDb: quietRuralNoiseFactorDb(7.1e6),
         effectiveHeightM: 250000,
         criticalFrequencyMHzDay: 8,
         criticalFrequencyMHzNight: 4,
@@ -422,6 +426,7 @@ export function createDisasterNetwork(id: DisasterPresetId): NetworkScenario {
     : {
         model: "vhf-terrain",
         temperatureK: 290,
+        externalNoiseDb: defaultExternalNoiseDbForBand("VHF"),
         effectiveEarthRadiusFactor: 4 / 3,
       };
   const links: NetworkLink[] = [];

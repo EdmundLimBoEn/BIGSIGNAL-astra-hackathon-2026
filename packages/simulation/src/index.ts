@@ -7,6 +7,7 @@ import type { PhysicsSettings } from './laboratory';
 
 export * from './laboratory';
 export * from './network';
+export * from './bandNoise';
 
 export { MODE_PROFILES, requiredSnrForBandwidth } from './modes';
 export { validateScenario, ScenarioValidationError } from './validateScenario';

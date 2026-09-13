@@ -16,6 +16,16 @@ const presets: DisasterPresetId[] = [
 ];
 
 describe("bidirectional disaster networks", () => {
+  it("uses sourced band-noise defaults for authored networks", () => {
+    const hf = createDisasterNetwork("wide-area");
+    expect(hf.links[0].frequencyHz).toBe(7.1e6);
+    expect(hf.links[0].environment.externalNoiseDb).toBeCloseTo(29.25, 2);
+
+    const vhf = createDisasterNetwork("internet-gone");
+    expect(vhf.links[0].frequencyHz).toBe(145e6);
+    expect(vhf.links[0].environment.externalNoiseDb).toBe(6);
+  });
+
   it.each(presets)(
     "simulates deterministic preset %s without mutating it",
     (id) => {

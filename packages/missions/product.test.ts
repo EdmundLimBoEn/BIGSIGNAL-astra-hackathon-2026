@@ -317,6 +317,7 @@ describe("applied design evidence", () => {
       effectiveEarthRadiusFactor: 4 / 3,
       temperatureK: 290,
       model: "vhf-terrain",
+      externalNoiseDb: 6,
     };
     expect(
       hasAppliedDesign(

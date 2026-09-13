@@ -6,6 +6,10 @@ import type {
 import type { TeacherChallenge } from "../../../packages/missions/product";
 import { dbmToWatts } from "../../../packages/units/src";
 import type { PhysicsSettings } from "../../../packages/simulation/src";
+import {
+  BAND_EXTERNAL_NOISE_DEFAULTS,
+  defaultExternalNoiseDbForFrequency,
+} from "../../../packages/simulation/src/bandNoise";
 import { createMission } from "./missions";
 
 export interface ChallengeCheck {
@@ -140,10 +144,10 @@ export function evaluateTeacherChallenge(
 
 export type RadioBand = "HF" | "VHF" | "UHF" | "MICROWAVE";
 const bandFrequencies: Record<RadioBand, number> = {
-  HF: 7e6,
-  VHF: 146e6,
-  UHF: 433e6,
-  MICROWAVE: 2.4e9,
+  HF: BAND_EXTERNAL_NOISE_DEFAULTS.HF.frequencyHz,
+  VHF: BAND_EXTERNAL_NOISE_DEFAULTS.VHF.frequencyHz,
+  UHF: BAND_EXTERNAL_NOISE_DEFAULTS.UHF.frequencyHz,
+  MICROWAVE: BAND_EXTERNAL_NOISE_DEFAULTS.MICROWAVE.frequencyHz,
 };
 
 export function switchScenarioBand(
@@ -177,6 +181,8 @@ export function switchScenarioBand(
     next.modeId = "fm-voice";
     next.receiver.bandwidthHz = 12500;
   }
+  next.environment.externalNoiseDb =
+    BAND_EXTERNAL_NOISE_DEFAULTS[band].noiseFactorDb;
   return next;
 }
 
@@ -189,6 +195,10 @@ export function switchPropagationModel(
     const next = switchScenarioBand(scenario, "HF");
     if (scenario.frequencyHz >= 1e6 && scenario.frequencyHz <= 30e6)
       next.frequencyHz = scenario.frequencyHz;
+    next.environment.externalNoiseDb =
+      defaultExternalNoiseDbForFrequency(next.frequencyHz) ??
+      next.environment.externalNoiseDb ??
+      0;
     return next;
   }
   return {
@@ -196,9 +206,10 @@ export function switchPropagationModel(
     environment: {
       model,
       temperatureK: scenario.environment.temperatureK,
-      ...(scenario.environment.externalNoiseDb === undefined
-        ? {}
-        : { externalNoiseDb: scenario.environment.externalNoiseDb }),
+      externalNoiseDb:
+        defaultExternalNoiseDbForFrequency(scenario.frequencyHz) ??
+        scenario.environment.externalNoiseDb ??
+        0,
       ...(model === "vhf-terrain" ? { effectiveEarthRadiusFactor: 4 / 3 } : {}),
     } as EnvironmentConfig,
   };

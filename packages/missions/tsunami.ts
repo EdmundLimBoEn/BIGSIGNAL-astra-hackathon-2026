@@ -2,6 +2,7 @@ import { wattsToDbm } from "../units/src";
 import type { Scenario, SimulationResult } from "../contracts";
 import { loadExampleScenario } from "../simulation/examples/scenarios";
 import { simulateScenario } from "../simulation/src";
+import { quietRuralNoiseFactorDb } from "../simulation/src/bandNoise";
 
 import {
   hospitalNetworkLinks,
@@ -28,6 +29,7 @@ export function createHospitalScenario(
   s.title = link.label;
   s.difficulty = "beginner";
   s.frequencyHz = 7.055e6;
+  s.environment.externalNoiseDb = quietRuralNoiseFactorDb(s.frequencyHz);
   s.transmitter.powerDbm = wattsToDbm(5);
   s.transmitter.position = {
     latitudeDeg: from.latitudeDeg,
@@ -52,6 +54,7 @@ export function createHospitalOperatorScenario(
 ): Scenario {
   const scenario = createHospitalScenario("meulaboh-medan");
   scenario.frequencyHz = channel;
+  scenario.environment.externalNoiseDb = quietRuralNoiseFactorDb(channel);
   scenario.transmitter.powerDbm = wattsToDbm(powerW);
   return scenario;
 }
