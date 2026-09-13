@@ -28,30 +28,13 @@ import {
 } from "./productStorage";
 import type { ProductState } from "./productStorage";
 import type { PhysicsSettings } from "../../../packages/simulation/src/laboratory";
-import { RescueScene } from "./RescueScene";
-import { TabStory } from "./TabStory";
+import { RescueScene, TabStory } from "./features/guides";
+import { WalkthroughConsole } from "./features/walkthrough";
+import { mainPages, toolPages, pageLabels, type Page } from "./app/navigation";
+import { walkthroughStops, walkthroughLanguages } from "../../../content/explanations/walkthrough";
 import "./product.css";
 import "./workspace.css";
 
-type Page =
-  | "learn"
-  | "lab"
-  | "disaster"
-  | "tsunami"
-  | "unreasonable"
-  | "saved"
-  | "teacher"
-  | "physics";
-const pageLabels: Record<Page, string> = {
-  learn: "Learn",
-  lab: "Radio lab",
-  disaster: "Disaster lab",
-  tsunami: "When phones fail",
-  unreasonable: "Unreasonable engineering",
-  saved: "My experiments",
-  teacher: "Teacher tools",
-  physics: "About the physics",
-};
 class ProductBoundary extends Component<
   { children: ReactNode },
   { error: boolean }
@@ -98,6 +81,10 @@ function useOfflineStatus() {
 }
 
 function Product() {
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const [tourLanguage, setTourLanguage] = useState("auto");
+  const [voiceReady, setVoiceReady] = useState(false);
+  const [narrationRequest, setNarrationRequest] = useState<{ id: number; prompt: string }>();
   const [state, setState] = useState<ProductState>(loadProduct);
   const [page, setPage] = useState<Page>(() =>
     location.hash === "#tsunami" ? "tsunami" : state.experiment.settings.mode,
@@ -146,7 +133,19 @@ function Product() {
   ) {
     setState((s) => ({ ...s, experiment: change(s.experiment) }));
   }
+  function guideTour(action: "show" | "stop", step: number) {
+    if (action === "stop") { setTourStep(null); setNarrationRequest(undefined); return; }
+    const stop = walkthroughStops[step];
+    if (!stop) throw new Error("Unknown tour stop.");
+    setTourStep(step);
+    navigate(stop.page);
+  }
   function navigate(next: Page) {
+    setNarrationRequest(undefined);
+    if (tourStep !== null) {
+      const matchingStop = walkthroughStops.findIndex(stop => stop.page === next);
+      setTourStep(matchingStop < 0 ? null : matchingStop);
+    }
     setTutorRunRevision(0);
     setTutorNetworkUpdate(undefined);
     if (next === "lab" && page === "learn" && lesson)
@@ -296,9 +295,13 @@ function Product() {
           physics: experiment.physics,
           lessonId: lesson?.id,
         };
+  tutorContext.language = tourLanguage;
+  tutorContext.visiblePage = page;
+  if (tourStep !== null) tutorContext.walkthroughStep = tourStep;
   const latestTutorContext = useRef(tutorContext);
   latestTutorContext.current = tutorContext;
   function applyTutorContext(next: TutorContext, expected: TutorContext) {
+    if (!["lab", "unreasonable", "disaster"].includes(page) && !(page === "learn" && lesson && state.onboarded)) throw new Error("Open a laboratory before changing settings.");
     if (JSON.stringify(latestTutorContext.current) !== JSON.stringify(expected))
       throw new Error(
         "The workspace changed. Ask Signal to use your current setup.",
@@ -388,11 +391,12 @@ function Product() {
         </button>
         <div className="header-actions">
           <span className="local-dot">No account needed</span>
+          <button onClick={() => guideTour("show", 0)}>Project walkthrough ◉</button>
           <button onClick={() => input.current?.click()}>Open file ↗</button>
         </div>
       </header>
       <nav className="primary-nav" aria-label="Main navigation">
-        {(["learn", "lab", "disaster", "tsunami", "unreasonable"] as const).map(
+        {mainPages.map(
           (p) => (
             <button
               key={p}
@@ -406,7 +410,7 @@ function Product() {
         )}
       </nav>
       <nav className="secondary-nav" aria-label="Tools">
-        {(["saved", "teacher", "physics"] as const).map((p) => (
+        {toolPages.map((p) => (
           <button
             key={p}
             aria-current={page === p ? "page" : undefined}
@@ -434,6 +438,20 @@ function Product() {
         </div>
       )}
       <main id="main-content">
+        {tourStep !== null && (
+          <WalkthroughConsole
+            step={tourStep}
+            language={tourLanguage}
+            onStep={step => guideTour("show", step)}
+            onLanguage={language => { if (walkthroughLanguages.some(item => item.id === language)) setTourLanguage(language); }}
+            onNarrate={() => setNarrationRequest(previous => ({
+              id: (previous?.id ?? 0) + 1,
+              prompt: `${walkthroughStops[tourStep].prompt} Explain in the selected audience language. Stay at this tour stop unless I ask to move. Do not change settings until I request a demonstration.`,
+            }))}
+            onClose={() => guideTour("stop", 0)}
+            voiceReady={voiceReady}
+          />
+        )}
         {page !== "learn" && <TabStory key={page} page={page} />}
         {page === "learn" && (!state.onboarded || !lesson) ? (
           <section className="onboarding">
@@ -1156,7 +1174,7 @@ function Product() {
         )}
       </main>
       {page !== "tsunami" && (
-        <TutorPanel context={tutorContext} onApplyContext={applyTutorContext} />
+        <TutorPanel context={tutorContext} onApplyContext={applyTutorContext} onWalkthrough={guideTour} narrationRequest={narrationRequest} onVoiceReady={setVoiceReady} />
       )}
       <footer className="product-footer">
         <span>

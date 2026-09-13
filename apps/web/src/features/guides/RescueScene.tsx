@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { rescueStory } from "../../../content/explanations/radio-guide";
+import { rescueStory } from "../../../../../content/explanations/radio-guide";
 
 export function RescueScene() {
   const [step, setStep] = useState(0);

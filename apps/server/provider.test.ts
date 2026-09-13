@@ -278,6 +278,7 @@ describe("tutor model and voice tuning", () => {
         },
       });
       expect(session.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        "guide_walkthrough",
         "inspect_experiment",
         "update_experiment",
       ]);

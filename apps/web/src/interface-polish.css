@@ -50,7 +50,26 @@
 .product-app .radio-guide summary b { color:#29495e; float:none; margin:0; font-size:13px; }
 .product-app .radio-guide summary small { color:#52697b; margin:0; line-height:1.5; }
 .product-app button:disabled { cursor:not-allowed; }
+.product-app :is(.df-focus-nav,.df-control-nav,.al-tabs) { display:flex; flex-wrap:wrap; gap:6px; background:#edf2f6; border:1px solid #d6e0e8; border-radius:10px; padding:7px; }
+.product-app :is(.df-focus-nav,.df-control-nav,.al-tabs) button { min-height:44px; padding:10px 12px; color:#304f65; border:1px solid #cfdae3; background:#fff; border-radius:7px; }
+.product-app :is(.df-focus-nav,.df-control-nav) button[aria-current],
+.product-app .al-tabs button[aria-pressed=true] { color:#fff; background:#236385; border-color:#236385; }
+.product-app .df-focus-nav .df-test { color:#203447; background:#f0cf86; border-color:#c7a24f; }
+.product-app .lesson-stage { max-height:none; overflow:visible; }
+@media (max-width:1149px) {
+  .product-app.focused-app .header-actions { padding-right:0; }
+  .product-app.focused-app .tutor-launcher { top:auto; bottom:14px; right:14px; }
+}
+@media (max-width:760px), (max-height:650px) {
+  .product-app .df-control-scroll { max-height:none; overflow:visible; }
+  .product-app .df-focus-nav { position:static; }
+  .product-app :is(.df-focus-nav,.df-control-nav,.al-tabs) button { flex:1 1 auto; }
+}
 @media(max-width:760px) {
+  .product-app { padding-bottom:90px; }
+  .product-app .product-header { flex-wrap:wrap; }
+  .product-app .header-actions { flex-wrap:wrap; justify-content:flex-end; }
+  .product-app .header-actions button { white-space:normal; }
   .product-app { padding-inline:14px; }
   .product-app .product-header { min-height:68px; padding-block:12px; }
   .product-app .product-brand { font-size:20px; gap:8px; }

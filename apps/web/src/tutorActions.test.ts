@@ -60,6 +60,37 @@ describe("staged tutor actions", () => {
 });
 
 describe("completed voice workspace tools", () => {
+  it("opens only a validated tour stop once and blocks chained edits after navigation", () => {
+    const original = context();
+    const guide = vi.fn();
+    const commit = vi.fn();
+    const seen = new Set<string>();
+    const event = response([call("tour", "guide_walkthrough", JSON.stringify({ action: "show", step: 2 })), call("edit")]);
+    const outputs = runVoiceTools(event, original, original, seen, commit, guide);
+    expect(guide).toHaveBeenCalledWith("show", 2);
+    expect(JSON.parse(outputs[0].item.output).navigationRequested).toBe(true);
+    expect(JSON.parse(outputs[1].item.output).error).toContain("Navigation");
+    expect(commit).not.toHaveBeenCalled();
+    expect(runVoiceTools(event, original, original, seen, commit, guide)).toEqual([]);
+    expect(guide).toHaveBeenCalledTimes(1);
+  });
+  it("rejects malformed, out-of-range, and cancelled tour requests", () => {
+    const original = context();
+    const guide = vi.fn();
+    for (const args of [{ action: "show", step: 9 }, { action: "delete", step: 0 }, { action: "show", step: 1, code: "bad" }, null]) {
+      const outputs = runVoiceTools(response([call("x", "guide_walkthrough", JSON.stringify(args))]), original, original, new Set(), vi.fn(), guide);
+      expect(JSON.parse(outputs[0].item.output).error).toBeTruthy();
+    }
+    runVoiceTools(response([call("x", "guide_walkthrough", '{"action":"show","step":1}')], "cancelled"), original, original, new Set(), vi.fn(), guide);
+    expect(guide).not.toHaveBeenCalled();
+  });
+  it("does not edit a background scenario while an informational page is visible", () => {
+    const original = { ...context(), visiblePage: "physics" };
+    const commit = vi.fn();
+    const output = runVoiceTools(response([call("edit")]), original, original, new Set(), commit);
+    expect(JSON.parse(output[0].item.output).error).toContain("Open a laboratory");
+    expect(commit).not.toHaveBeenCalled();
+  });
   it("commits a change and subsequent inspection sees updated engine results", () => {
     const original = context();
     const copy = structuredClone(original);

@@ -164,6 +164,12 @@ export function createProvider(
           tools: [
             {
               type: "function",
+              name: "guide_walkthrough",
+              description: "Open one visual project walkthrough stop (0 overview, 1 lab, 2 disaster, 3 extreme engineering, 4 physics), or close the tour. No experiment values are changed. Call only in response to a walkthrough/navigation request. After navigating, narrate that stop before another tool call.",
+              parameters: { type: "object", properties: { action: { type: "string", enum: ["show", "stop"] }, step: { type: "integer", minimum: 0, maximum: 4 } }, required: ["action", "step"], additionalProperties: false },
+            },
+            {
+              type: "function",
               name: "inspect_experiment",
               description:
                 "Read the current visible experiment, component IDs, and authoritative simulation result.",

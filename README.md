@@ -14,6 +14,8 @@ The same ideas help explain field expeditions, remote communities, and disaster-
 
 ## Run the product
 
+For contributors, see the [project structure and code placement guide](docs/PROJECT_STRUCTURE.md).
+
 Install [Bun](https://bun.sh/) before starting. From the repository root:
 
 ```sh
@@ -25,6 +27,8 @@ Open the local URL printed by Vite (normally `http://127.0.0.1:5173/`). Start wi
 
 ## Work in one place
 
+**Project walkthrough** opens a five-stop visual guide with language selection. **Open voice guide** queues an explanation in Ask Signal; after server configuration and explicit consent, OpenAI Realtime can narrate stops, navigate the tour, and demonstrate supported radio changes with Undo. Try “Give me a walkthrough,” “Next,” and “Explain this in Tamil.” The visual tour works without a key; live voice does not. See [voice setup and walkthrough instructions](docs/TUTOR_SETUP.md#voice-led-project-walkthrough). Never paste API keys into chat; rotate any exposed key.
+
 Lessons use Brief, Experiment, and Reflect steps. The lab keeps the map and radio controls together, with direct views for results, comparisons, instruments, and physics settings. SEND IT stays within reach. Disaster Lab opens on the network, with separate briefing and result views.
 
 The home screen presents a coastal hospital rescue story with illustrated terrain, buildings, a hilltop relay, and animated transmissions. Select **Phones go down**, **Find another route**, and **Test the connection** to explain the challenge. Use **Pause animation** to stop motion; system reduced-motion preferences disable it. **Enter the hospital mission** opens the existing interactive hospital network. The introductory routes are conceptual, not computed coverage. Inside the lab, expand **New to radio? Start here.** for a plain-language guide to power, frequency, antenna height, and noise. Results retain technical units with short explanations below each metric.
@@ -34,6 +38,8 @@ The home screen presents a coastal hospital rescue story with illustrated terrai
 ## Choose a mode
 
 The shared interface uses neutral white surfaces, dark readable text, blue selected controls, and restrained section accents. On phones the main navigation becomes a two-column grid, tool tabs wrap within the viewport, and form controls use larger text and touch targets. Keyboard focus is explicitly outlined; color is never the only indicator of selection.
+
+The radio controls have a keyboard-focusable **Radio settings** scroll region on desktop and normal page scrolling on mobile/short screens. A visible hint points to additional settings. **SEND IT** explains when it is waiting for a prediction; a guess enables the experiment but does not determine its result. Workbench and disaster tabs use explicit selected states. Lesson prerequisites remain enforced rather than making locked lessons appear selectable.
 
 Every non-Learn tab includes a collapsible visual use-case guide. Radio lab introduces a field expedition; Disaster lab introduces community connectivity; When phones fail introduces hospital communications; Unreasonable engineering introduces an extreme outpost design. My experiments, Teacher tools, and About the physics show visual workflows for saving evidence, running a class, and inspecting models. Select the three story steps for plain-language instructions, use **Animate route** / **Pause motion**, or **Hide guide** to focus on the workspace. These illustrations do not load scenarios, change settings, or represent live engine results. Reduced-motion preferences disable their animation.
 

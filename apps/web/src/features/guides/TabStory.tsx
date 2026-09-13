@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { tabStories, type StoryPage } from "../../../content/explanations/tab-stories";
+import { tabStories, type StoryPage } from "../../../../../content/explanations/tab-stories";
 import "./tab-story.css";
 
 export function TabStory({ page }: { page: StoryPage }) {

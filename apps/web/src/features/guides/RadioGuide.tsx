@@ -1,4 +1,4 @@
-import { radioKnobs } from "../../../content/explanations/radio-guide";
+import { radioKnobs } from "../../../../../content/explanations/radio-guide";
 
 export function RadioGuide() {
   return <details className="radio-guide">

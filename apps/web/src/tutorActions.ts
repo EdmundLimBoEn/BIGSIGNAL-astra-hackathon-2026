@@ -28,6 +28,7 @@ export function runVoiceTools(
   current: TutorContext,
   seen: Set<string>,
   commit: (next: TutorContext, expected: TutorContext) => void,
+  guide?: (action: "show" | "stop", step: number) => void,
 ) {
   const data = event as {
     type?: string;
@@ -45,6 +46,7 @@ export function runVoiceTools(
   }[] = [];
   let working = current;
   let edits = 0;
+  let navigated = false;
   for (const raw of data.response.output) {
     const call = raw as {
       type?: string;
@@ -61,13 +63,23 @@ export function runVoiceTools(
     seen.add(call.call_id);
     let result: unknown;
     try {
+      if (navigated) throw new Error("Navigation has changed the view. Explain this stop and wait for the learner before another tool call.");
       if (JSON.stringify(snapshot) !== JSON.stringify(current))
         throw new Error(
           "The workspace changed during this response. Inspect the current experiment and try again.",
         );
-      if (call.name === "inspect_experiment") {
+      if (call.name === "guide_walkthrough") {
+        if (!guide) throw new Error("Visual walkthrough is unavailable here.");
+        if (typeof call.arguments !== "string" || call.arguments.length > 300) throw new Error("Invalid walkthrough arguments.");
+        const args = JSON.parse(call.arguments);
+        if (!args || !["show", "stop"].includes(args.action) || !Number.isInteger(args.step) || args.step < 0 || args.step > 4 || Object.keys(args).some(key => !["action", "step"].includes(key))) throw new Error("Invalid walkthrough stop.");
+        guide(args.action, args.step);
+        navigated = true;
+        result = { navigationRequested: true, action: args.action, step: args.step, experimentChanged: false, instruction: "Narrate this stop briefly. Do not use old experiment data as the new screen. Wait for the learner before another tool call." };
+      } else if (call.name === "inspect_experiment") {
         result = describeTutorContext(working);
       } else if (call.name === "update_experiment") {
+        if (working.visiblePage && !["lab", "unreasonable", "disaster"].includes(working.visiblePage) && !(working.visiblePage === "learn" && working.lessonId)) throw new Error("Open a laboratory before changing experiment settings.");
         if (++edits > 20) throw new Error("Too many changes in one response.");
         if (typeof call.arguments !== "string" || call.arguments.length > 4000)
           throw new Error("Invalid tool arguments.");

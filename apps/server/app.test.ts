@@ -266,6 +266,7 @@ describe("grounded read-only tools", () => {
     );
     expect(session.model).toBe("voice");
     expect(session.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      "guide_walkthrough",
       "inspect_experiment",
       "update_experiment",
     ]);

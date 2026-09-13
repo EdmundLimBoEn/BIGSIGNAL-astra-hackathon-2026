@@ -12,7 +12,33 @@ The optional tutor uses the OpenAI Agents SDK for text and OpenAI Realtime WebRT
 
 `GET /api/tutor/status` reports configuration presence, not provider connectivity or credit availability. No paid request occurs merely by loading the page. The bundled test suite uses mocks, not a live provider key.
 
-## Configuration
+## Voice-led project walkthrough
+
+1. Select **Project walkthrough** in the header. The five-stop visual tour works without a key and preserves your current experiment.
+2. Choose **Voice explanation language**: Auto, English, Tamil, Hindi, Malay, Mandarin, or Bengali. This sets the tutor's spoken/text explanation preference, not a full translation of the application. Language and accent quality require live testing.
+3. Choose **Open voice guide**, review the OpenAI sharing notice, give consent, and press **Talk to Signal**. The selected stop's explanation is queued until voice connects. Microphone capture never starts merely by opening the tour.
+4. Say “Please give a walkthrough of this project,” “Next,” or “Show the radio lab.” The voice model can call the bounded `guide_walkthrough` tool to open one of five tour stops. It pauses between stops for the audience rather than rapidly skipping screens.
+5. In Radio lab, ask “Demonstrate raising the transmitter antenna to 15 metres and explain the result.” The existing validated edit tool reruns the authoritative engine. Use **Undo tutor change** to restore that change when no later manual edit would be overwritten.
+6. Say “Explain that in Tamil” (or select another language). Keep English control names when following the on-screen instructions. Use **End voice** to release the microphone. **End tour** closes the visual guide only; it does not end a voice conversation.
+
+Tour navigation does not reset, save, export, or complete experiments. Unknown stops, malformed arguments, duplicate calls, cancelled responses, and stale-context actions are rejected. After a navigation action, further tools in that response are rejected; the next model reply narrates the stop without tools. Settings edits from informational pages are blocked. Text chat can explain a tour but does not operate the navigation tool.
+
+The walkthrough uses the existing server-created Realtime WebRTC session, not browser speech synthesis or a recorded voice. No fake voice is substituted when the service is unavailable. Its SVG teaching art is deliberately labelled illustrative, not field photography or simulation evidence.
+
+**Credential safety:** never paste API keys into a chat or commit them. If one is exposed, revoke it and place a replacement only in the ignored local `.env` file or deployment secret store. Start/restart the tutor server after changing it. A configured status is not proof of model access or available credits.
+
+### Node development fallback
+
+If Bun is unavailable but Node 24 and the project's dependencies are installed, build and run the same server without changing the lockfile:
+
+```sh
+npx vite build --ssr apps/server/index.ts --outDir apps/server/dist
+node --env-file-if-exists=.env apps/server/dist/index.js
+```
+
+Keep `bun run dev` (or the Vite development server) running separately on port 5173. Rebuild/restart this Node server after backend changes. `apps/server/dist` is generated and ignored by Git.
+
+## Model and server configuration
 
 | Variable                | Default                | Purpose                                                            |
 | ----------------------- | ---------------------- | ------------------------------------------------------------------ |

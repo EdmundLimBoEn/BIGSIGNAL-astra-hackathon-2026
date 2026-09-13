@@ -271,6 +271,62 @@
 .configure-scroll > label {
   margin-bottom: 17px;
 }
+/* Keep radio controls usable even when the fixed action footer grows at zoom. */
+.product-app .experiment-workspace .lab-workspace:has(.configure) {
+  min-height: 640px;
+}
+.product-app .configure .configure-scroll {
+  min-height: 300px;
+  overflow-y: auto;
+  scrollbar-color: #597788 #edf3f6;
+  scrollbar-width: auto;
+  scroll-padding-block: 20px;
+}
+.product-app .configure .configure-scroll-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 9px 18px;
+  background: #edf4f8;
+  border-bottom: 1px solid #c5d6e0;
+  color: #425d70;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.product-app .configure .configure-scroll :is(p, small),
+.product-app .configure .panel-title span {
+  color: #425d70;
+}
+.product-app .configure .configure-scroll:focus-visible {
+  outline: 3px solid #246786;
+  outline-offset: -3px;
+}
+.product-app .configure .configure-action .send-help {
+  color: #344d60;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.product-app .configure .configure-action .send:disabled {
+  opacity: 1;
+  color: #52616c;
+  background: #e2e8eb;
+  border-color: #bac8d1;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+@media (max-width: 760px), (max-height: 650px) {
+  .product-app .experiment-workspace .lab-workspace:has(.configure) {
+    height: auto;
+    min-height: 0;
+  }
+  .product-app .experiment-workspace .configure .configure-scroll {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+  .product-app .configure .configure-scroll-hint {
+    display: none;
+  }
+}
 .configure-action {
   flex-shrink: 0;
   padding: 10px 15px;

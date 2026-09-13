@@ -26,7 +26,7 @@ import { type Graphics } from "./missions";
 import { Scene } from "./Scene";
 import { LabControls, NumberField } from "./LabControls";
 import { Results } from "./Results";
-import { RadioGuide } from "./RadioGuide";
+import { RadioGuide } from "./features/guides";
 import { AdvancedLab } from "./AdvancedLab";
 import {
   evaluateTeacherChallenge,
@@ -625,7 +625,8 @@ export function LabWorkspace({
             <h2>Your radio.</h2>
             <span>TRY THINGS.</span>
           </div>
-          <div className="configure-scroll">
+          <p className="configure-scroll-hint">Adjust your setup below · scroll for more controls ↓</p>
+          <div className="configure-scroll" tabIndex={0} role="region" aria-label="Radio settings">
             {!controls && (
               <>
                 <label>
@@ -726,9 +727,13 @@ export function LabWorkspace({
               {running ? "TRANSMITTING…" : "SEND IT"} ↗
             </button>
             <p className="send-help">
-              {!predictionReady
+              {running
+                ? "Transmitting your experiment…"
+                : !predictionReady
                 ? "Make your prediction first."
-                : "The engine decides what happens next."}
+                : !controls && !guess
+                  ? "Choose Strong, Marginal, or No link above to enable SEND IT. Your guess does not change the result."
+                  : "Ready to test. SEND IT calculates the result from your setup."}
             </p>
             <p role="alert" className="error-message">
               {notice}

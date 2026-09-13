@@ -28,9 +28,15 @@ type Service = {
 export function TutorPanel({
   context,
   onApplyContext,
+  onWalkthrough,
+  narrationRequest,
+  onVoiceReady,
 }: {
   context: TutorContext;
   onApplyContext: (next: TutorContext, expected: TutorContext) => void;
+  onWalkthrough?: (action: "show" | "stop", step: number) => void;
+  narrationRequest?: { id: number; prompt: string };
+  onVoiceReady?: (ready: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [service, setService] = useState<Service | null>(null);
@@ -48,6 +54,18 @@ export function TutorPanel({
     after: TutorContext;
   } | null>(null);
   const [changeNotice, setChangeNotice] = useState("");
+  const pendingNarration = useRef<{ prompt: string; contextKey: string } | null>(null);
+  const [navigationReply, setNavigationReply] = useState(false);
+  const guideCallback = useRef(onWalkthrough);
+  guideCallback.current = onWalkthrough;
+  useEffect(() => {
+    if (!narrationRequest) { pendingNarration.current = null; return; }
+    pendingNarration.current = { prompt: narrationRequest.prompt, contextKey: JSON.stringify(context) };
+    setOpen(true);
+    setDraft(narrationRequest.prompt);
+  }, [narrationRequest]);
+  useEffect(() => { onVoiceReady?.(voice !== "idle" && voice !== "connecting"); }, [voice, onVoiceReady]);
+  useEffect(() => () => onVoiceReady?.(false), [onVoiceReady]);
   const peer = useRef<RTCPeerConnection | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -66,6 +84,31 @@ export function TutorPanel({
   const launcher = useRef<HTMLButtonElement>(null);
   currentContext.current = context;
   const contextKey = JSON.stringify(context);
+  useEffect(() => {
+    if (pendingNarration.current?.contextKey !== contextKey) pendingNarration.current = null;
+  }, [contextKey]);
+  useEffect(() => {
+    if (!navigationReply || channel.current?.readyState !== "open") return;
+    // React has now committed the destination page and its context.
+    voiceContext.current = structuredClone(currentContext.current);
+    channel.current.send(JSON.stringify({ type: "session.update", session: { type: "realtime", instructions: buildTutorInstructions(voiceContext.current, true) } }));
+    channel.current.send(JSON.stringify({ type: "response.create", response: { tool_choice: "none" } }));
+    setNavigationReply(false);
+    setVoice("thinking");
+  }, [navigationReply, contextKey]);
+  useEffect(() => {
+    if (voice !== "listening" || !pendingNarration.current || channel.current?.readyState !== "open") return;
+    if (pendingNarration.current.contextKey !== contextKey) { pendingNarration.current = null; return; }
+    const prompt = pendingNarration.current.prompt;
+    pendingNarration.current = null;
+    channel.current.send(JSON.stringify({ type: "session.update", session: { type: "realtime", instructions: buildTutorInstructions(currentContext.current, true) } }));
+    voiceContext.current = structuredClone(currentContext.current);
+    channel.current.send(JSON.stringify({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text: prompt }] } }));
+    channel.current.send(JSON.stringify({ type: "response.create" }));
+    setMessages(m => [...m, { id: crypto.randomUUID(), role: "user", content: prompt }].slice(-40) as Entry[]);
+    setDraft("");
+    setVoice("thinking");
+  }, [voice, narrationRequest]);
   function commitChanges(next: TutorContext, expected: TutorContext) {
     applyContext.current(next, expected);
     currentContext.current = next;
@@ -123,6 +166,8 @@ export function TutorPanel({
     end.current?.scrollIntoView({ block: "nearest" });
   }, [messages, busy]);
   function stopVoice() {
+    pendingNarration.current = null;
+    setNavigationReply(false);
     generation.current++;
     voiceRequest.current?.abort();
     voiceRequest.current = null;
@@ -348,7 +393,7 @@ export function TutorPanel({
             }),
           ),
         );
-        dc.send(
+        if (!pendingNarration.current) dc.send(
           JSON.stringify({
             type: "response.create",
             response: {
@@ -386,9 +431,17 @@ export function TutorPanel({
                 currentContext.current,
                 seenCalls,
                 commitChanges,
+                (action, step) => {
+                  pendingNarration.current = null;
+                  if (!guideCallback.current) throw new Error("Walkthrough navigation is unavailable.");
+                  guideCallback.current(action, step);
+                },
               );
               outputs.forEach((output) => dc.send(JSON.stringify(output)));
-              if (outputs.length) {
+              const navigated = outputs.some(output => output.item.output.includes('"navigationRequested":true'));
+              if (navigated) {
+                setNavigationReply(true);
+              } else if (outputs.length) {
                 voiceContext.current = structuredClone(currentContext.current);
                 dc.send(
                   JSON.stringify({

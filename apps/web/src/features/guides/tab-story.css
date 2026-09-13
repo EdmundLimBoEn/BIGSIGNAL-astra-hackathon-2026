@@ -1,3 +1,4 @@
+/* Visual guide feature styles; imported by TabStory. */
 .tab-story { --story-accent:#246b8f; --story-tint:#edf6fa; margin:20px 0; background:var(--story-tint); border:1px solid #c9dce0; border-radius:16px; overflow:hidden; }
 .tab-story[data-tone=coral] { --story-accent:#97452e; --story-tint:#fff1e9; }
 .tab-story[data-tone=amber] { --story-accent:#87611c; --story-tint:#fff7e5; }

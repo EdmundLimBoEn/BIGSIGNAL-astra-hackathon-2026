@@ -358,6 +358,7 @@ export function LabControls({
             {[50, 500, 2400, 12500].map((b) => (
               <button
                 key={b}
+                aria-pressed={s.receiver.bandwidthHz === b}
                 onClick={() => edit((s) => (s.receiver.bandwidthHz = b))}
               >
                 {b} Hz
