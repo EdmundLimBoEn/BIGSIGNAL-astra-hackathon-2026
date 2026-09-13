@@ -35,3 +35,11 @@ The product composes the existing scenes and version 1 RF contracts with a typed
 Energy, impedance, cable, receiver, Fresnel, and fantasy helpers live in `packages/simulation/src/laboratory.ts`. Networks are an additive graph domain in `network.ts`; each edge invokes the same Scenario engine for both directions. No existing Scenario or SimulationResult field was removed or renamed.
 
 The custom wire editor stores geometric points and segments separately. It does not infer gain, impedance, or resonance from arbitrary wire geometry. The SVG scene fallback projects returned path points and uses the same terrain projection as the 3D view.
+
+## Contextual tutor and focused workspace
+
+Lesson phases and workspace views select which mounted surface is shown, preserving simulation and mastery state. The map and radio controls have independent scroll areas. Disaster Lab exposes its live NetworkScenario to ProductApp through a typed callback. TutorPanel receives the current context and never alters experiment state or mastery.
+
+The optional server lives in apps/server. It serves the production artifact and /api/tutor endpoints; Vite proxies the same routes during development and preview. packages/tutor validates context, builds bounded prompts from authoritative engine summaries, and supplies read-only hypothetical experiments. Text uses the OpenAI Agents SDK and voice uses server-created Realtime WebRTC calls. Standard credentials never reach the client. API routes are excluded from service-worker handling.
+
+Voice has explicit connecting/listening/thinking/speaking states and tears down microphone tracks, peers, and pending requests on exit. Experiment changes refresh voice instructions or stop the session if refresh fails. Text requests are cancelled when their context changes. Recent history is bounded to the server contract; neither server conversation persistence nor provider tracing is enabled. Live-provider verification requires an API key.

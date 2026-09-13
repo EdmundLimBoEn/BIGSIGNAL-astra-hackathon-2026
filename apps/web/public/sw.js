@@ -23,6 +23,7 @@ self.addEventListener("activate", (event) =>
 self.addEventListener("fetch", (event) => {
   if (
     event.request.method !== "GET" ||
+    new URL(event.request.url).pathname.startsWith("/api/") ||
     new URL(event.request.url).origin !== self.location.origin
   )
     return;
@@ -39,7 +40,10 @@ self.addEventListener("fetch", (event) => {
           );
         }
       }
-      return (await cache.match(event.request, { ignoreVary: true })) || fetch(event.request);
+      return (
+        (await cache.match(event.request, { ignoreVary: true })) ||
+        fetch(event.request)
+      );
     })(),
   );
 });

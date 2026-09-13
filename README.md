@@ -11,6 +11,12 @@ bun run dev
 
 Open the local URL printed by Vite. First launch starts a guided lesson without an account, radio hardware, or cloud backend.
 
+## Work in one place
+
+Lessons use Brief, Experiment, and Reflect steps. The lab keeps the map and radio controls together, with direct views for results, comparisons, instruments, and physics settings. SEND IT stays within reach. Disaster Lab opens on the network, with separate briefing and result views.
+
+**Ask Signal** opens the optional AI tutor beside the lab on desktop or as a compact panel on mobile. It receives the current experiment or disaster network, answers text questions with read-only engine tools, and supports spoken conversations through OpenAI Realtime. Setup is in [Signal tutor setup](docs/TUTOR_SETUP.md). No key is required for the lessons or simulation.
+
 ## Explore the four modes
 
 - **Learn** has 10 beginner, 8 intermediate, and 14 advanced lessons. Each has a prediction, hands-on experiment, explanation, transfer question, and local mastery record. Each tier has its own entry point. Detailed concepts identify which quantities are modeled and which remain conceptual.
@@ -58,4 +64,4 @@ Model assumptions, equations, units, and confidence appear in MATH and the equip
 - [Original build plan](docs/BUILD_PLAN.md)
 - [Collaboration workflow](CONTRIBUTING.md)
 
-The stack is TypeScript, React, Vite, Three.js, React Three Fiber, and Vitest with the committed Bun lockfile. There is no configured hosted deployment target.
+The stack is TypeScript, React, Vite, Three.js, React Three Fiber, and Vitest with the committed Bun lockfile. The optional Bun server uses the OpenAI Agents SDK and Realtime API; its key stays on the server. There is no configured hosted deployment target.

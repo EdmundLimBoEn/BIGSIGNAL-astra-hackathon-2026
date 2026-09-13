@@ -14,6 +14,8 @@ import {
   type PortableExperiment,
 } from "../../../packages/missions/product";
 import { LabWorkspace } from "./LabWorkspace";
+import { TutorPanel } from "./TutorPanel";
+import type { NetworkScenario } from "../../../packages/simulation/src/network";
 import { DisasterLab } from "./DisasterLab";
 import { TeacherTools } from "./TeacherTools";
 import {
@@ -25,6 +27,7 @@ import {
 import type { ProductState } from "./productStorage";
 import type { PhysicsSettings } from "../../../packages/simulation/src/laboratory";
 import "./product.css";
+import "./workspace.css";
 
 type Page =
   | "learn"
@@ -91,6 +94,10 @@ function useOfflineStatus() {
 function Product() {
   const [state, setState] = useState<ProductState>(loadProduct);
   const [page, setPage] = useState<Page>(state.experiment.settings.mode);
+  const [lessonPhase, setLessonPhase] = useState<
+    "brief" | "experiment" | "reflect"
+  >("brief");
+  const [tutorNetwork, setTutorNetwork] = useState<NetworkScenario>();
   const [tier, setTier] = useState<Difficulty>("beginner");
   const [notice, setNotice] = useState("");
   const [resetKey, setResetKey] = useState(0);
@@ -139,6 +146,7 @@ function Product() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function openLesson(l: Lesson) {
+    setLessonPhase("brief");
     setState((s) => ({
       ...s,
       onboarded: true,
@@ -288,7 +296,9 @@ function Product() {
     />
   );
   return (
-    <div className="product-app">
+    <div
+      className={`product-app ${page === "lab" || page === "unreasonable" || (page === "learn" && lesson && state.onboarded) ? "focused-app" : ""}`}
+    >
       <a className="skip-link" href="#main-content">
         Skip to the laboratory
       </a>
@@ -531,174 +541,226 @@ function Product() {
                 {getMastery(lesson, lessonProgress)}
               </span>
             </div>
-            <div className="lesson-intro">
-              <section className="surface">
-                <span className="eyebrow">01 / THE SITUATION</span>
-                <h2>{lesson.scenarioBrief}</h2>
-                {lesson.id === "wrong-microwave" && (
-                  <svg
-                    className="microwave"
-                    viewBox="0 0 360 170"
-                    role="img"
-                    aria-label="A microwave oven. Wrong microwave."
-                  >
-                    <rect
-                      x="12"
-                      y="16"
-                      width="336"
-                      height="134"
-                      rx="16"
-                      fill="#dae5cd"
-                    />
-                    <rect
-                      x="30"
-                      y="32"
-                      width="225"
-                      height="100"
-                      rx="9"
-                      fill="#273827"
-                    />
-                    <path d="M70 90h130l-20 24H90z" fill="#c9f879" />
-                    <path
-                      d="M108 75q-12-10 0-20m28 20q-12-10 0-20m28 20q-12-10 0-20"
-                      fill="none"
-                      stroke="#c9f879"
-                      strokeWidth="4"
-                    />
-                    <rect
-                      x="274"
-                      y="38"
-                      width="55"
-                      height="24"
-                      rx="3"
-                      fill="#162216"
-                    />
-                    <text x="282" y="55" fill="#c9f879" fontSize="12">
-                      0:13
-                    </text>
-                    <circle cx="300" cy="91" r="14" fill="#536548" />
-                    <path
-                      d="M33 154v8m290-8v8"
-                      stroke="#768769"
-                      strokeWidth="10"
-                    />
-                  </svg>
-                )}
-                <ol>
-                  {lesson.experiment.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-                {lesson.modelNote && (
-                  <p className="assumption-note">{lesson.modelNote}</p>
-                )}
-              </section>
-              <section className="surface prediction-card">
-                <span className="eyebrow">02 / PREDICT</span>
-                <h3>{lesson.prediction.question}</h3>
-                <div className="question-choices">
-                  {lesson.prediction.choices.map((choice, i) => (
-                    <button
-                      key={choice}
-                      aria-pressed={lessonProgress.predictionIndex === i}
-                      onClick={() => progress({ predictionIndex: i })}
-                    >
-                      <span>{String.fromCharCode(65 + i)}</span>
-                      {choice}
-                    </button>
-                  ))}
-                </div>
-                <p>Commit to a guess. Being wrong is useful data.</p>
-              </section>
-            </div>
-            {workspace(true)}
-            {lessonProgress.attempts > 0 && (
-              <div className="lesson-debrief">
+            <nav className="lesson-phases" aria-label="Lesson steps">
+              <button
+                aria-pressed={lessonPhase === "brief"}
+                onClick={() => setLessonPhase("brief")}
+              >
+                01 Brief & predict
+              </button>
+              <button
+                aria-pressed={lessonPhase === "experiment"}
+                disabled={lessonProgress.predictionIndex === null}
+                onClick={() => setLessonPhase("experiment")}
+              >
+                02 Experiment
+              </button>
+              <button
+                aria-pressed={lessonPhase === "reflect"}
+                disabled={lessonProgress.attempts === 0}
+                onClick={() => setLessonPhase("reflect")}
+              >
+                03 Reflect & apply
+              </button>
+            </nav>
+            <div hidden={lessonPhase !== "brief"} className="lesson-stage">
+              <div className="lesson-intro">
                 <section className="surface">
-                  <span className="eyebrow">04 / OBSERVE & EXPLAIN</span>
-                  <h2>{lesson.observation}</h2>
-                  <p>{lesson.explanation}</p>
-                  <p className="misconception">
-                    <b>A common trap</b> {lesson.misconception}
-                  </p>
-                  {lessonProgress.predictionIndex !== null && (
-                    <p>
-                      {
-                        assessQuestion(
-                          lesson.prediction,
-                          lessonProgress.predictionIndex,
-                        ).feedback
-                      }
-                    </p>
+                  <span className="eyebrow">01 / THE SITUATION</span>
+                  <h2>{lesson.scenarioBrief}</h2>
+                  {lesson.id === "wrong-microwave" && (
+                    <svg
+                      className="microwave"
+                      viewBox="0 0 360 170"
+                      role="img"
+                      aria-label="A microwave oven. Wrong microwave."
+                    >
+                      <rect
+                        x="12"
+                        y="16"
+                        width="336"
+                        height="134"
+                        rx="16"
+                        fill="#dae5cd"
+                      />
+                      <rect
+                        x="30"
+                        y="32"
+                        width="225"
+                        height="100"
+                        rx="9"
+                        fill="#273827"
+                      />
+                      <path d="M70 90h130l-20 24H90z" fill="#c9f879" />
+                      <path
+                        d="M108 75q-12-10 0-20m28 20q-12-10 0-20m28 20q-12-10 0-20"
+                        fill="none"
+                        stroke="#c9f879"
+                        strokeWidth="4"
+                      />
+                      <rect
+                        x="274"
+                        y="38"
+                        width="55"
+                        height="24"
+                        rx="3"
+                        fill="#162216"
+                      />
+                      <text x="282" y="55" fill="#c9f879" fontSize="12">
+                        0:13
+                      </text>
+                      <circle cx="300" cy="91" r="14" fill="#536548" />
+                      <path
+                        d="M33 154v8m290-8v8"
+                        stroke="#768769"
+                        strokeWidth="10"
+                      />
+                    </svg>
+                  )}
+                  <ol>
+                    {lesson.experiment.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  {lesson.modelNote && (
+                    <p className="assumption-note">{lesson.modelNote}</p>
                   )}
                 </section>
-                <section className="surface">
-                  <span className="eyebrow">
-                    05 / TAKE THE IDEA SOMEWHERE NEW
-                  </span>
-                  <h3>{lesson.transfer.question}</h3>
+                <section className="surface prediction-card">
+                  <span className="eyebrow">02 / PREDICT</span>
+                  <h3>{lesson.prediction.question}</h3>
                   <div className="question-choices">
-                    {lesson.transfer.choices.map((c, i) => (
+                    {lesson.prediction.choices.map((choice, i) => (
                       <button
-                        key={c}
-                        aria-pressed={lessonProgress.transferIndex === i}
-                        onClick={() => progress({ transferIndex: i })}
+                        key={choice}
+                        aria-pressed={lessonProgress.predictionIndex === i}
+                        onClick={() => progress({ predictionIndex: i })}
                       >
-                        {c}
+                        <span>{String.fromCharCode(65 + i)}</span>
+                        {choice}
                       </button>
                     ))}
                   </div>
-                  {lessonProgress.transferIndex !== null && (
-                    <p
-                      role="status"
-                      className={
-                        lessonProgress.transferIndex ===
-                        lesson.transfer.correctIndex
-                          ? "correct-feedback"
-                          : "retry-feedback"
-                      }
-                    >
-                      {
-                        assessQuestion(
-                          lesson.transfer,
-                          lessonProgress.transferIndex,
-                        ).feedback
-                      }
-                    </p>
-                  )}
-                  {lessonProgress.transferIndex ===
-                    lesson.transfer.correctIndex && (
-                    <div className="lesson-next">
-                      <button
-                        className="primary"
-                        onClick={() => {
-                          const next = lessons.find(
-                            (l) =>
-                              l.tier === lesson.tier &&
-                              l.number === lesson.number + 1,
-                          );
-                          if (next) openLesson(next);
-                          else {
-                            setState((s) => ({ ...s, activeLesson: null }));
-                            setTier(
-                              lesson.tier === "beginner"
-                                ? "intermediate"
-                                : "advanced",
-                            );
-                          }
-                        }}
-                      >
-                        Next experiment ↗
-                      </button>
-                      <button onClick={() => navigate("lab")}>
-                        Try your own version in Lab
-                      </button>
-                    </div>
-                  )}
+                  <p>Commit to a guess. Being wrong is useful data.</p>
+                  <button
+                    className="primary"
+                    disabled={lessonProgress.predictionIndex === null}
+                    onClick={() => setLessonPhase("experiment")}
+                  >
+                    Try the experiment ↗
+                  </button>
                 </section>
               </div>
-            )}
-            <div className="lab-toolbar">
+            </div>
+            <div hidden={lessonPhase !== "experiment"}>
+              <div className="lesson-run-guide">
+                <details>
+                  <summary>Experiment instructions</summary>
+                  <ol>
+                    {lesson.experiment.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  {lesson.modelNote && <p>{lesson.modelNote}</p>}
+                </details>
+                <button
+                  disabled={lessonProgress.attempts === 0}
+                  onClick={() => setLessonPhase("reflect")}
+                >
+                  Reflect on your result ↗
+                </button>
+              </div>
+              {workspace(true)}
+            </div>
+            <div hidden={lessonPhase !== "reflect"} className="lesson-stage">
+              {lessonProgress.attempts > 0 && (
+                <div className="lesson-debrief">
+                  <section className="surface">
+                    <span className="eyebrow">04 / OBSERVE & EXPLAIN</span>
+                    <h2>{lesson.observation}</h2>
+                    <p>{lesson.explanation}</p>
+                    <p className="misconception">
+                      <b>A common trap</b> {lesson.misconception}
+                    </p>
+                    {lessonProgress.predictionIndex !== null && (
+                      <p>
+                        {
+                          assessQuestion(
+                            lesson.prediction,
+                            lessonProgress.predictionIndex,
+                          ).feedback
+                        }
+                      </p>
+                    )}
+                  </section>
+                  <section className="surface">
+                    <span className="eyebrow">
+                      05 / TAKE THE IDEA SOMEWHERE NEW
+                    </span>
+                    <h3>{lesson.transfer.question}</h3>
+                    <div className="question-choices">
+                      {lesson.transfer.choices.map((c, i) => (
+                        <button
+                          key={c}
+                          aria-pressed={lessonProgress.transferIndex === i}
+                          onClick={() => progress({ transferIndex: i })}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                    {lessonProgress.transferIndex !== null && (
+                      <p
+                        role="status"
+                        className={
+                          lessonProgress.transferIndex ===
+                          lesson.transfer.correctIndex
+                            ? "correct-feedback"
+                            : "retry-feedback"
+                        }
+                      >
+                        {
+                          assessQuestion(
+                            lesson.transfer,
+                            lessonProgress.transferIndex,
+                          ).feedback
+                        }
+                      </p>
+                    )}
+                    {lessonProgress.transferIndex ===
+                      lesson.transfer.correctIndex && (
+                      <div className="lesson-next">
+                        <button
+                          className="primary"
+                          onClick={() => {
+                            const next = lessons.find(
+                              (l) =>
+                                l.tier === lesson.tier &&
+                                l.number === lesson.number + 1,
+                            );
+                            if (next) openLesson(next);
+                            else {
+                              setState((s) => ({ ...s, activeLesson: null }));
+                              setTier(
+                                lesson.tier === "beginner"
+                                  ? "intermediate"
+                                  : "advanced",
+                              );
+                            }
+                          }}
+                        >
+                          Next experiment ↗
+                        </button>
+                        <button onClick={() => navigate("lab")}>
+                          Try your own version in Lab
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )}
+            </div>
+            <div className="lab-toolbar lesson-file-actions">
               <button
                 onClick={() => {
                   setScenario(getLessonScenario(lesson.id));
@@ -716,7 +778,7 @@ function Product() {
         )}
         {(page === "lab" || page === "unreasonable") && (
           <>
-            <div className="page-heading">
+            <div className="page-heading lab-page-heading">
               <span className="eyebrow">
                 {page === "lab"
                   ? "FREE EXPERIMENTATION / SAME SERIOUS PHYSICS"
@@ -791,6 +853,7 @@ function Product() {
         )}
         {page === "disaster" && (
           <DisasterLab
+            onContextChange={setTutorNetwork}
             onOpenLab={(scenario) =>
               openExperiment({
                 ...defaultExperiment(),
@@ -1005,6 +1068,23 @@ function Product() {
           </section>
         )}
       </main>
+      <TutorPanel
+        context={
+          page === "disaster"
+            ? { mode: "disaster", network: tutorNetwork }
+            : {
+                mode:
+                  page === "unreasonable"
+                    ? "unreasonable"
+                    : page === "learn"
+                      ? "learn"
+                      : "lab",
+                scenario: experiment.scenario,
+                physics: experiment.physics,
+                lessonId: lesson?.id,
+              }
+        }
+      />
       <footer className="product-footer">
         <span>
           B I G S I G N A L <small>SMALL PLANET. ENDLESS QUESTIONS.</small>
