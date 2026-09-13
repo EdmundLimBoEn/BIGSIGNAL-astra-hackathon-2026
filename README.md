@@ -33,6 +33,10 @@ The home screen presents a coastal hospital rescue story with illustrated terrai
 
 ## Choose a mode
 
+The shared interface uses neutral white surfaces, dark readable text, blue selected controls, and restrained section accents. On phones the main navigation becomes a two-column grid, tool tabs wrap within the viewport, and form controls use larger text and touch targets. Keyboard focus is explicitly outlined; color is never the only indicator of selection.
+
+Every non-Learn tab includes a collapsible visual use-case guide. Radio lab introduces a field expedition; Disaster lab introduces community connectivity; When phones fail introduces hospital communications; Unreasonable engineering introduces an extreme outpost design. My experiments, Teacher tools, and About the physics show visual workflows for saving evidence, running a class, and inspecting models. Select the three story steps for plain-language instructions, use **Animate route** / **Pause motion**, or **Hide guide** to focus on the workspace. These illustrations do not load scenarios, change settings, or represent live engine results. Reduced-motion preferences disable their animation.
+
 | Mode | Human question | What to try |
 | --- | --- | --- |
 | Learn | How does radio work? | Follow a guided prediction, experiment, and reflection. |

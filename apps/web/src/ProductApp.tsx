@@ -29,6 +29,7 @@ import {
 import type { ProductState } from "./productStorage";
 import type { PhysicsSettings } from "../../../packages/simulation/src/laboratory";
 import { RescueScene } from "./RescueScene";
+import { TabStory } from "./TabStory";
 import "./product.css";
 import "./workspace.css";
 
@@ -433,6 +434,7 @@ function Product() {
         </div>
       )}
       <main id="main-content">
+        {page !== "learn" && <TabStory key={page} page={page} />}
         {page === "learn" && (!state.onboarded || !lesson) ? (
           <section className="onboarding">
             <div>
