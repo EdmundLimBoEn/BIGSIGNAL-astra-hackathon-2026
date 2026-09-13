@@ -3,10 +3,10 @@
     "schemaVersion": 1,
     "propagationAvailable": true,
     "receivedPowerDbm": -49.64834250323929,
-    "noiseFloorDbm": -128.00608706414752,
-    "snrDb": 78.35774456090823,
+    "noiseFloorDbm": -125.57865741474694,
+    "snrDb": 75.93031491150765,
     "requiredSnrDb": 12,
-    "linkMarginDb": 66.35774456090823,
+    "linkMarginDb": 63.93031491150765,
     "success": "good",
     "confidence": {
       "level": "low",
@@ -37,6 +37,12 @@
         "unit": "dB",
         "equation": "20 log10(4πdf/c)",
         "children": [
+          {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
           {
             "id": "frequency",
             "label": "Frequency",
@@ -114,7 +120,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -128.00608706414752,
+        "value": -125.57865741474694,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -139,28 +145,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 0,
+            "value": 6,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 290,
+            "value": 1154.5107946051419,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 290,
+            "value": 976.7053333787882,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.000014836254038726851,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": 78.35774456090823,
+        "value": 75.93031491150765,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -178,7 +191,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 66.35774456090823,
+        "value": 63.93031491150765,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -195,8 +208,8 @@
       {
         "id": "feedline",
         "label": "Remove feedline loss",
-        "impactDb": -2,
-        "possibleImprovementDb": 2,
+        "impactDb": -1.5433775105582868,
+        "possibleImprovementDb": 1.5433775105582868,
         "confidence": 0.8,
         "explanationKey": "feedline-loss"
       }
@@ -454,6 +467,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 145000000,
@@ -572,6 +591,13 @@
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
+      },
+      {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.000014836254038726851,
+        "unit": "s",
+        "equation": "distance / wave speed"
       },
       {
         "id": "snr",
@@ -1046,6 +1072,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 145000000,
@@ -1164,6 +1196,13 @@
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
+      },
+      {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.000014836254038726851,
+        "unit": "s",
+        "equation": "distance / wave speed"
       },
       {
         "id": "snr",
@@ -1638,6 +1677,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 145000000,
@@ -1756,6 +1801,13 @@
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
+      },
+      {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.00001483631740966179,
+        "unit": "s",
+        "equation": "distance / wave speed"
       },
       {
         "id": "snr",
@@ -1985,10 +2037,10 @@
     "schemaVersion": 1,
     "propagationAvailable": false,
     "receivedPowerDbm": -77.60714267668004,
-    "noiseFloorDbm": -128.00608706414752,
-    "snrDb": 50.39894438746748,
+    "noiseFloorDbm": -125.57865741474694,
+    "snrDb": 47.9715147380669,
     "requiredSnrDb": 12,
-    "linkMarginDb": 38.39894438746748,
+    "linkMarginDb": 35.9715147380669,
     "success": "failed",
     "confidence": {
       "level": "low",
@@ -2020,6 +2072,12 @@
         "unit": "dB",
         "equation": "20 log10(4πdf/c)",
         "children": [
+          {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
           {
             "id": "frequency",
             "label": "Frequency",
@@ -2100,7 +2158,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -128.00608706414752,
+        "value": -125.57865741474694,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -2125,28 +2183,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 0,
+            "value": 6,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 290,
+            "value": 1154.5107946051419,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 290,
+            "value": 976.7053333787882,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.00037090635096817125,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": 50.39894438746748,
+        "value": 47.9715147380669,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -2164,7 +2229,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 38.39894438746748,
+        "value": 35.9715147380669,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -2185,10 +2250,10 @@
     "schemaVersion": 1,
     "propagationAvailable": true,
     "receivedPowerDbm": -72.53484658172303,
-    "noiseFloorDbm": -121.04550070571725,
-    "snrDb": 48.510654123994215,
+    "noiseFloorDbm": -120.24646521290913,
+    "snrDb": 47.7116186311861,
     "requiredSnrDb": 10,
-    "linkMarginDb": 38.510654123994215,
+    "linkMarginDb": 37.7116186311861,
     "success": "good",
     "confidence": {
       "level": "low",
@@ -2305,6 +2370,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 14000000,
@@ -2381,7 +2452,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -121.04550070571725,
+        "value": -120.24646521290913,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -2406,28 +2477,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 20,
+            "value": 20.820738179602394,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 29000,
+            "value": 35032.55527027908,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 23095.16361893412,
+            "value": 27886.992597651562,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.007840858439062742,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": 48.510654123994215,
+        "value": 47.7116186311861,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -2445,7 +2523,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 38.510654123994215,
+        "value": 37.7116186311861,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -2462,8 +2540,8 @@
       {
         "id": "feedline",
         "label": "Remove feedline loss",
-        "impactDb": -1.034668403839646,
-        "possibleImprovementDb": 1.034668403839646,
+        "impactDb": -1.0288229468438033,
+        "possibleImprovementDb": 1.0288229468438033,
         "confidence": 0.3,
         "explanationKey": "feedline-loss"
       }
@@ -2503,10 +2581,10 @@
     "schemaVersion": 1,
     "propagationAvailable": false,
     "receivedPowerDbm": -70.74913229600875,
-    "noiseFloorDbm": -121.04550070571725,
-    "snrDb": 50.29636840970849,
+    "noiseFloorDbm": -120.24646521290913,
+    "snrDb": 49.497332916900376,
     "requiredSnrDb": 10,
-    "linkMarginDb": 40.29636840970849,
+    "linkMarginDb": 39.497332916900376,
     "success": "failed",
     "confidence": {
       "level": "low",
@@ -2624,6 +2702,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 14000000,
@@ -2703,7 +2787,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -121.04550070571725,
+        "value": -120.24646521290913,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -2728,28 +2812,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 20,
+            "value": 20.820738179602394,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 29000,
+            "value": 35032.55527027908,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 23095.16361893412,
+            "value": 27886.992597651562,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.007840858439062742,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": 50.29636840970849,
+        "value": 49.497332916900376,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -2767,7 +2858,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 40.29636840970849,
+        "value": 39.497332916900376,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -2819,10 +2910,10 @@
     "schemaVersion": 1,
     "propagationAvailable": false,
     "receivedPowerDbm": -77.55833908046534,
-    "noiseFloorDbm": -121.04550070571725,
-    "snrDb": 43.4871616252519,
+    "noiseFloorDbm": -128.9614054078578,
+    "snrDb": 51.40306632739245,
     "requiredSnrDb": 10,
-    "linkMarginDb": 33.4871616252519,
+    "linkMarginDb": 41.40306632739245,
     "success": "failed",
     "confidence": {
       "level": "low",
@@ -2940,6 +3031,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 30000000,
@@ -3019,7 +3116,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -121.04550070571725,
+        "value": -128.9614054078578,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -3044,28 +3141,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 20,
+            "value": 11.354332115017655,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 29000,
+            "value": 3961.240488534058,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 23095.16361893412,
+            "value": 3206.1699765055673,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.007840858439062742,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": 43.4871616252519,
+        "value": 51.40306632739245,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -3083,7 +3187,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 33.4871616252519,
+        "value": 41.40306632739245,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -3135,10 +3239,10 @@
     "schemaVersion": 1,
     "propagationAvailable": true,
     "receivedPowerDbm": -176.13370976715055,
-    "noiseFloorDbm": -121.04550070571725,
-    "snrDb": -55.088209061433304,
+    "noiseFloorDbm": -94.87356487957798,
+    "snrDb": -81.26014488757257,
     "requiredSnrDb": 10,
-    "linkMarginDb": -65.0882090614333,
+    "linkMarginDb": -91.26014488757257,
     "success": "failed",
     "confidence": {
       "level": "low",
@@ -3255,6 +3359,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 1800000,
@@ -3331,7 +3441,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -121.04550070571725,
+        "value": -94.87356487957798,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -3356,28 +3466,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 20,
+            "value": 46.299206354045445,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 29000,
+            "value": 12368545.564502483,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 23095.16361893412,
+            "value": 9824744.609170029,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.007840858439062742,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": -55.088209061433304,
+        "value": -81.26014488757257,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -3395,7 +3512,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": -65.0882090614333,
+        "value": -91.26014488757257,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -3420,8 +3537,8 @@
       {
         "id": "feedline",
         "label": "Remove feedline loss",
-        "impactDb": -1.034668403839646,
-        "possibleImprovementDb": 1.034668403839646,
+        "impactDb": -1.0000833704538508,
+        "possibleImprovementDb": 1.0000833704538508,
         "confidence": 0.3,
         "explanationKey": "feedline-loss"
       }
@@ -3462,11 +3579,11 @@
     "schemaVersion": 1,
     "propagationAvailable": true,
     "receivedPowerDbm": -106.87058921567274,
-    "noiseFloorDbm": -121.04550070571725,
-    "snrDb": 14.174911490044508,
+    "noiseFloorDbm": -111.7281420268597,
+    "snrDb": 4.857552811186963,
     "requiredSnrDb": 10,
-    "linkMarginDb": 4.174911490044508,
-    "success": "marginal",
+    "linkMarginDb": -5.142447188813037,
+    "success": "failed",
     "confidence": {
       "level": "low",
       "reasons": [
@@ -3582,6 +3699,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 7000000,
@@ -3658,7 +3781,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -121.04550070571725,
+        "value": -111.7281420268597,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -3683,28 +3806,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 20,
+            "value": 29.430196055592255,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 29000,
+            "value": 254341.71973988335,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 23095.16361893412,
+            "value": 202090.45406964945,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.0308838732090208,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": 14.174911490044508,
+        "value": 4.857552811186963,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -3722,7 +3852,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 4.174911490044508,
+        "value": -5.142447188813037,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -3747,8 +3877,8 @@
       {
         "id": "feedline",
         "label": "Remove feedline loss",
-        "impactDb": -1.034668403839646,
-        "possibleImprovementDb": 1.034668403839646,
+        "impactDb": -1.0040426656979378,
+        "possibleImprovementDb": 1.0040426656979378,
         "confidence": 0.3,
         "explanationKey": "feedline-loss"
       }
@@ -3802,18 +3932,18 @@
     "explanationKeys": [
       "hf-skywave",
       "hf-absorption",
-      "link-marginal"
+      "link-failed"
     ]
   },
   "hf-ft8": {
     "schemaVersion": 1,
     "propagationAvailable": true,
     "receivedPowerDbm": -126.87058921567274,
-    "noiseFloorDbm": -120.86821303611293,
-    "snrDb": -6.002376179559803,
+    "noiseFloorDbm": -111.55085435725539,
+    "snrDb": -15.319734858417348,
     "requiredSnrDb": -21,
-    "linkMarginDb": 14.997623820440197,
-    "success": "good",
+    "linkMarginDb": 5.680265141582652,
+    "success": "marginal",
     "confidence": {
       "level": "low",
       "reasons": [
@@ -3929,6 +4059,12 @@
         "equation": "20 log10(4πdf/c)",
         "children": [
           {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
+          {
             "id": "frequency",
             "label": "Frequency",
             "value": 7000000,
@@ -4005,7 +4141,7 @@
       {
         "id": "noise-floor",
         "label": "Receiver noise floor",
-        "value": -120.86821303611293,
+        "value": -111.55085435725539,
         "unit": "dBm",
         "equation": "10 log10(1000 k B [Ta/Lrx + Tcable(1 - 1/Lrx) + 290(F - 1)])",
         "children": [
@@ -4030,28 +4166,35 @@
           {
             "id": "external-noise",
             "label": "External antenna noise excess",
-            "value": 20,
+            "value": 29.430196055592255,
             "unit": "dB"
           },
           {
             "id": "antenna-temperature",
             "label": "Equivalent antenna noise temperature before cable",
-            "value": 29000,
+            "value": 254341.71973988335,
             "unit": "K"
           },
           {
             "id": "receiver-input-temperature",
             "label": "Noise temperature after receiver cable",
-            "value": 23095.16361893412,
+            "value": 202090.45406964945,
             "unit": "K",
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
       },
       {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.0308838732090208,
+        "unit": "s",
+        "equation": "distance / wave speed"
+      },
+      {
         "id": "snr",
         "label": "Signal-to-noise ratio",
-        "value": -6.002376179559803,
+        "value": -15.319734858417348,
         "unit": "dB",
         "equation": "Received power - noise floor"
       },
@@ -4069,7 +4212,7 @@
       {
         "id": "link-margin",
         "label": "Link margin",
-        "value": 14.997623820440197,
+        "value": 5.680265141582652,
         "unit": "dB",
         "equation": "SNR - required SNR"
       }
@@ -4094,8 +4237,8 @@
       {
         "id": "feedline",
         "label": "Remove feedline loss",
-        "impactDb": -1.034668403839646,
-        "possibleImprovementDb": 1.034668403839646,
+        "impactDb": -1.0040426656979378,
+        "possibleImprovementDb": 1.0040426656979378,
         "confidence": 0.3,
         "explanationKey": "feedline-loss"
       }
@@ -4149,7 +4292,7 @@
     "explanationKeys": [
       "hf-skywave",
       "hf-absorption",
-      "link-good"
+      "link-marginal"
     ]
   },
   "microwave-clear": {
@@ -4224,6 +4367,12 @@
         "unit": "dB",
         "equation": "20 log10(4πdf/c)",
         "children": [
+          {
+            "id": "wave-speed",
+            "label": "Wave speed",
+            "value": 299792458,
+            "unit": "m/s"
+          },
           {
             "id": "frequency",
             "label": "Frequency",
@@ -4343,6 +4492,13 @@
             "equation": "Ta/Lrx + Tcable(1 - 1/Lrx)"
           }
         ]
+      },
+      {
+        "id": "travel-time",
+        "label": "Candidate path travel time",
+        "value": 0.00001854531754840856,
+        "unit": "s",
+        "equation": "distance / wave speed"
       },
       {
         "id": "snr",

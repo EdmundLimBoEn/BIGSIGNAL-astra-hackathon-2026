@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./physics": "./src/physics.ts",
+    "./band-noise": "./src/bandNoise.ts",
     ".": "./src/index.ts",
     "./examples": "./examples/scenarios.ts"
   },

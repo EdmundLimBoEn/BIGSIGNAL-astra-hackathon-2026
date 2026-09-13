@@ -150,6 +150,7 @@ describe('public simulator acceptance', () => {
   it('combines antenna noise and receiver equivalent noise temperatures', () => {
     const input = loadExampleScenario('vhf-clear');
     input.environment.temperatureK = 290;
+    input.environment.externalNoiseDb = 0;
     input.receiver.noiseFigureDb = 0;
     const baseline = simulateScenario(input);
     input.environment.temperatureK = 580;

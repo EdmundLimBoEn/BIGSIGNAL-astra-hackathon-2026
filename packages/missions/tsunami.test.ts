@@ -11,6 +11,7 @@ import { switchScenarioBand } from "../../apps/web/src/productDomain";
 describe("hospital radio experiments", () => {
   it("uses the real engine for a regional voice message and reply", () => {
     const s = createHospitalScenario();
+    expect(s.environment.externalNoiseDb).toBeCloseTo(29.33, 2);
     const result = simulateScenario(s);
     const contact = assessHospitalContact(s, result);
     expect(contact.outward).toEqual(result);

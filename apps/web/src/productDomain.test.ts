@@ -124,9 +124,21 @@ describe("cross-band experiments preserve the problem", () => {
     const terrain = switchScenarioBand(exampleScenario, "VHF");
     if (terrain.environment.model === "vhf-terrain")
       terrain.environment.obstruction = { fraction: 0.2, altitudeM: 30 };
-    expect(switchScenarioBand(terrain, "MICROWAVE").environment).toEqual(
-      terrain.environment,
-    );
+    const microwave = switchScenarioBand(terrain, "MICROWAVE");
+    expect(microwave.environment).toMatchObject({
+      model: "vhf-terrain",
+      obstruction: { fraction: 0.2, altitudeM: 30 },
+      externalNoiseDb: 0,
+    });
+  });
+  it.each([
+    ["HF", 29.43],
+    ["VHF", 6],
+    ["UHF", 0],
+    ["MICROWAVE", 0],
+  ] as const)("%s loads its explicit external-noise default", (band, expectedDb) => {
+    const next = switchScenarioBand(exampleScenario, band);
+    expect(next.environment.externalNoiseDb).toBeCloseTo(expectedDb, 2);
   });
   it("selecting the ionosphere on a VHF setup also selects a valid HF frequency", () => {
     const next = switchPropagationModel(exampleScenario, "hf-skywave");
@@ -140,6 +152,20 @@ describe("cross-band experiments preserve the problem", () => {
       "hf-skywave",
     );
     expect(next.frequencyHz).toBe(14e6);
+    expect(next.environment.externalNoiseDb).toBeCloseTo(20.82, 2);
+  });
+  it("selecting a terrestrial model updates noise for the retained frequency", () => {
+    const source = switchScenarioBand(exampleScenario, "HF");
+    const next = switchPropagationModel(source, "free-space");
+    expect(next.frequencyHz).toBe(7e6);
+    expect(next.environment.externalNoiseDb).toBeCloseTo(29.43, 2);
+  });
+  it("leaves ordinary manual frequency and noise edits independent", () => {
+    const scenario = switchScenarioBand(exampleScenario, "HF");
+    scenario.frequencyHz = 14e6;
+    expect(scenario.environment.externalNoiseDb).toBe(29.43);
+    scenario.environment.externalNoiseDb = 3;
+    expect(scenario.frequencyHz).toBe(14e6);
   });
 });
 

@@ -48,6 +48,7 @@
     "environment": {
       "model": "vhf-terrain",
       "temperatureK": 290,
+      "externalNoiseDb": 6,
       "effectiveEarthRadiusFactor": 1.3333333333333333
     },
     "time": {
@@ -283,6 +284,7 @@
     "environment": {
       "model": "vhf-terrain",
       "temperatureK": 290,
+      "externalNoiseDb": 6,
       "effectiveEarthRadiusFactor": 1.3333333333333333
     },
     "time": {
@@ -338,7 +340,7 @@
     "environment": {
       "model": "hf-skywave",
       "temperatureK": 290,
-      "externalNoiseDb": 20,
+      "externalNoiseDb": 20.820738179602394,
       "effectiveHeightM": 300000,
       "criticalFrequencyMHzDay": 7,
       "criticalFrequencyMHzNight": 3,
@@ -400,7 +402,7 @@
     "environment": {
       "model": "hf-skywave",
       "temperatureK": 290,
-      "externalNoiseDb": 20,
+      "externalNoiseDb": 20.820738179602394,
       "effectiveHeightM": 300000,
       "criticalFrequencyMHzDay": 7,
       "criticalFrequencyMHzNight": 3,
@@ -462,7 +464,7 @@
     "environment": {
       "model": "hf-skywave",
       "temperatureK": 290,
-      "externalNoiseDb": 20,
+      "externalNoiseDb": 11.354332115017655,
       "effectiveHeightM": 300000,
       "criticalFrequencyMHzDay": 7,
       "criticalFrequencyMHzNight": 3,
@@ -524,7 +526,7 @@
     "environment": {
       "model": "hf-skywave",
       "temperatureK": 290,
-      "externalNoiseDb": 20,
+      "externalNoiseDb": 46.299206354045445,
       "effectiveHeightM": 300000,
       "criticalFrequencyMHzDay": 7,
       "criticalFrequencyMHzNight": 3,
@@ -586,7 +588,7 @@
     "environment": {
       "model": "hf-skywave",
       "temperatureK": 290,
-      "externalNoiseDb": 20,
+      "externalNoiseDb": 29.430196055592255,
       "effectiveHeightM": 300000,
       "criticalFrequencyMHzDay": 7,
       "criticalFrequencyMHzNight": 3,
@@ -648,7 +650,7 @@
     "environment": {
       "model": "hf-skywave",
       "temperatureK": 290,
-      "externalNoiseDb": 20,
+      "externalNoiseDb": 29.430196055592255,
       "effectiveHeightM": 300000,
       "criticalFrequencyMHzDay": 7,
       "criticalFrequencyMHzNight": 3,
@@ -710,6 +712,7 @@
     "environment": {
       "model": "vhf-terrain",
       "temperatureK": 290,
+      "externalNoiseDb": 0,
       "effectiveEarthRadiusFactor": 1.3333333333333333,
       "obstruction": {
         "fraction": 0.5,
