@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMission } from "../web/src/missions";
 import worker, { type WorkerBindings } from "./index";
+import { createProvider } from "../server/provider";
 
 const provider = vi.hoisted(() => ({ chat: vi.fn(), realtime: vi.fn() }));
 vi.mock("../server/provider", () => ({ createProvider: vi.fn(() => provider) }));
@@ -11,18 +12,19 @@ function bindings(): WorkerBindings {
     APP_ORIGIN: "https://bigsignal.edmundlim.systems",
     OPENAI_TEXT_MODEL: "gpt-5.4-mini", OPENAI_VOICE_MODEL: "gpt-realtime-2.1-mini",
     OPENAI_VOICE_THRESHOLD: "0.7", OPENAI_VOICE_SILENCE_MS: "1000", OPENAI_VOICE_NOISE_REDUCTION: "near_field",
-    OPENAI_API_KEY: "test-only-key", BIGSIGNAL_TUTOR_TOKEN: "test-only-code",
+    OPENAI_API_KEY: "test-only-key",
   };
 }
 const context = { mode: "lab", scenario: createMission("VHF") };
-function chat(ip = "192.0.2.1", authorization = "Bearer test-only-code") {
+function chat(ip = "192.0.2.1") {
   return new Request("https://bigsignal.edmundlim.systems/api/tutor/chat", {
-    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://bigsignal.edmundlim.systems", "CF-Connecting-IP": ip, authorization },
+    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://bigsignal.edmundlim.systems", "CF-Connecting-IP": ip },
     body: JSON.stringify({ context, messages: [{ role: "user", content: "Explain the link." }] }),
   });
 }
 
 beforeEach(() => {
+  vi.mocked(createProvider).mockClear();
   provider.chat.mockReset().mockResolvedValue("Test explanation");
   provider.realtime.mockReset().mockResolvedValue("v=0\r\nanswer");
 });
@@ -31,7 +33,6 @@ describe("Workers adapter", () => {
   it("serves public static content without initializing tutor credentials", async () => {
     const env = bindings();
     delete env.OPENAI_API_KEY;
-    delete env.BIGSIGNAL_TUTOR_TOKEN;
     expect(await (await worker.fetch(new Request("https://bigsignal.edmundlim.systems/"), env)).text()).toBe("static site");
     expect(env.ASSETS.fetch).toHaveBeenCalledOnce();
   });
@@ -42,22 +43,21 @@ describe("Workers adapter", () => {
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(env.ASSETS.fetch).not.toHaveBeenCalled();
   });
-  it("requires the access code and enforces the exact origin", async () => {
+  it("allows requests without an access code and enforces the exact origin", async () => {
     const env = bindings();
-    expect((await worker.fetch(chat("192.0.2.1", "Bearer wrong"), env)).status).toBe(401);
     const foreign = chat();
     foreign.headers.set("origin", "https://evil.example");
     expect((await worker.fetch(foreign, env)).status).toBe(403);
     expect(provider.chat).not.toHaveBeenCalled();
     expect((await worker.fetch(chat(), env)).status).toBe(200);
   });
-  it("fails closed if deployment omitted the access code", async () => {
+  it("reports an unconfigured tutor when the API key is missing", async () => {
     const env = bindings();
-    delete env.BIGSIGNAL_TUTOR_TOKEN;
+    delete env.OPENAI_API_KEY;
     expect((await worker.fetch(chat(), env)).status).toBe(503);
     expect(provider.chat).not.toHaveBeenCalled();
     const status = await worker.fetch(new Request("https://bigsignal.edmundlim.systems/api/tutor/status"), env);
-    expect(await status.json()).toMatchObject({ configured: false });
+    expect(await status.json()).toMatchObject({ configured: false, accessCodeRequired: false });
   });
   it("retains per-client limits across fetch calls and separates client IPs", async () => {
     const env = bindings();
@@ -77,11 +77,22 @@ describe("Workers adapter", () => {
     release();
     expect((await Promise.all(requests)).every((r) => r.status === 200)).toBe(true);
   });
-  it("uses rotated bindings instead of keeping stale authorization", async () => {
+  it("ignores legacy access-code secrets", async () => {
+    const env = Object.assign(bindings(), { BIGSIGNAL_TUTOR_TOKEN: "legacy-test-code" });
+    const status = await worker.fetch(new Request("https://bigsignal.edmundlim.systems/api/tutor/status"), env);
+    expect(await status.json()).toMatchObject({ configured: true, accessCodeRequired: false });
+    expect((await worker.fetch(chat(), env)).status).toBe(200);
+    env.BIGSIGNAL_TUTOR_TOKEN = "different-legacy-code";
+    expect((await worker.fetch(chat(), env)).status).toBe(200);
+    expect(createProvider).toHaveBeenCalledOnce();
+  });
+  it("refreshes the provider when its API key rotates", async () => {
     const env = bindings();
     expect((await worker.fetch(chat(), env)).status).toBe(200);
-    env.BIGSIGNAL_TUTOR_TOKEN = "rotated-test-code";
-    expect((await worker.fetch(chat(), env)).status).toBe(401);
-    expect((await worker.fetch(chat("192.0.2.1", "Bearer rotated-test-code"), env)).status).toBe(200);
+    expect(createProvider).toHaveBeenLastCalledWith("test-only-key", env.OPENAI_TEXT_MODEL, env.OPENAI_VOICE_MODEL, expect.any(Function), expect.any(Object));
+    env.OPENAI_API_KEY = "rotated-test-key";
+    expect((await worker.fetch(chat(), env)).status).toBe(200);
+    expect(createProvider).toHaveBeenCalledTimes(2);
+    expect(createProvider).toHaveBeenLastCalledWith("rotated-test-key", env.OPENAI_TEXT_MODEL, env.OPENAI_VOICE_MODEL, expect.any(Function), expect.any(Object));
   });
 });

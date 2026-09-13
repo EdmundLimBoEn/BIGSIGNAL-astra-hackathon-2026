@@ -23,7 +23,7 @@ const localConfig = {
   ...config,
   main: join(root, config.main),
   assets: { ...config.assets, directory: join(root, config.assets.directory) },
-  vars: { ...config.vars, OPENAI_API_KEY: "runtime-test-unused", BIGSIGNAL_TUTOR_TOKEN: "runtime-test-code" },
+  vars: { ...config.vars, OPENAI_API_KEY: "runtime-test-unused" },
 };
 delete localConfig.routes;
 delete localConfig.account_id;
@@ -55,7 +55,7 @@ try {
   const status = await fetch(`${origin}/api/tutor/status`);
   assert.equal(status.headers.get("cache-control"), "no-store");
   assert.deepEqual(await status.json(), {
-    configured: true, accessCodeRequired: true,
+    configured: true, accessCodeRequired: false,
     textModel: config.vars.OPENAI_TEXT_MODEL, voiceModel: config.vars.OPENAI_VOICE_MODEL,
   });
   const page = await fetch(origin);
@@ -72,17 +72,16 @@ try {
   assert.equal(unknown.status, 404);
   assert.match(unknown.headers.get("content-type") ?? "", /application\/json/);
   const body = JSON.stringify({ context: { mode: "lab", scenario: createMission("VHF") } });
-  const requestContext = (originHeader = config.vars.APP_ORIGIN, token = "runtime-test-code") => fetch(`${origin}/api/tutor/context`, {
-    method: "POST", headers: { Origin: originHeader, Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body,
+  const requestContext = (originHeader = config.vars.APP_ORIGIN) => fetch(`${origin}/api/tutor/context`, {
+    method: "POST", headers: { Origin: originHeader, "Content-Type": "application/json" }, body,
   });
   assert.equal((await requestContext("https://foreign.example")).status, 403);
-  assert.equal((await requestContext(config.vars.APP_ORIGIN, "wrong-code")).status, 401);
   const authorized = await requestContext();
   assert.equal(authorized.status, 200);
   assert.match((await authorized.json()).instructions, /engineResult/);
   for (let i = 1; i < 60; i++) assert.equal((await requestContext()).status, 200);
   assert.equal((await requestContext()).status, 429, "Same environment preserves the rate bucket across Worker requests");
-  console.log("PASS Workers runtime: status, public assets, SPA navigation, API 404, strict origin, access code, context, persistent rate limit. No provider API calls made.");
+  console.log("PASS Workers runtime: status, public assets, SPA navigation, API 404, strict origin, context without authorization, persistent rate limit. No provider API calls made.");
 } finally {
   child.kill("SIGTERM");
   await Promise.race([exited, delay(3000)]);

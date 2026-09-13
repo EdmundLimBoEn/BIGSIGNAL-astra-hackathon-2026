@@ -12,20 +12,17 @@ bun run check:worker
 bun run test:worker-runtime
 ```
 
-`check:worker` packages the Worker without uploading or provisioning resources. `test:worker-runtime` starts an isolated local workerd process, uses temporary fake credentials, and checks static assets, SPA navigation, API status, strict origin, access-code checks, a valid context response, and the per-client rate limit. It never calls an AI provider. The script stops its process and removes its temporary files afterward.
+`check:worker` packages the Worker without uploading or provisioning resources. `test:worker-runtime` starts an isolated local workerd process, uses temporary fake credentials, and checks static assets, SPA navigation, API status, strict origin, a valid context response without authorization, and the per-client rate limit. It never calls an AI provider. The script stops its process and removes its temporary files afterward.
 
-For interactive Workers development, copy `.dev.vars.example` to `.dev.vars`, set the local origin to match your browser, and run `bun run dev:worker`. With no API key or tutor access code, the site remains available and paid tutor endpoints fail closed. Local secret files are ignored by Git.
+For interactive Workers development, copy `.dev.vars.example` to `.dev.vars`, set the local origin to match your browser, and run `bun run dev:worker`. With no API key, the site remains available and paid tutor endpoints fail closed. Local secret files are ignored by Git.
 
 `bun run dev`, `bun run dev:server`, and `bun start` keep their existing Vite and local Node/Bun server behavior. The Worker adapter does not import the local server's filesystem or HTTP listener.
 
 ## Configure production
 
-The deployment owner must set these Worker secrets securely:
+The deployment owner must securely set the `OPENAI_API_KEY` Worker secret for server-side provider requests. The deployed tutor does not require an access code and ignores any legacy `BIGSIGNAL_TUTOR_TOKEN` secret. The local Node/Bun server retains its existing optional access-code authentication.
 
-- `OPENAI_API_KEY` is the server-side provider credential.
-- `BIGSIGNAL_TUTOR_TOKEN` is the tutor access code required for paid endpoints.
-
-Do not put their values in Wrangler configuration, source files, GitHub workflow files, shell arguments, or browser environment variables. GitHub Actions only needs deployment credentials; provider credentials remain Worker secrets.
+Do not put the API key in Wrangler configuration, source files, GitHub workflow files, shell arguments, or browser environment variables. GitHub Actions only needs deployment credentials; provider credentials remain Worker secrets.
 
 Add repository Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The token needs permission to deploy Workers and update the configured custom domain in the intended account. Keep the account ID out of source so local and CI account selection stay explicit.
 
