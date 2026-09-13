@@ -3,13 +3,18 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { createTutorHandler, type ServerConfig } from "./app";
 import { createProvider } from "./provider";
+import {
+  DEFAULT_TEXT_MODEL,
+  DEFAULT_VOICE_MODEL,
+  readVoiceTuning,
+} from "./tuning";
 const port = Number(process.env.PORT ?? 8787);
 const host = process.env.HOST ?? "127.0.0.1";
 const config: ServerConfig = {
   apiKey: process.env.OPENAI_API_KEY,
   accessCode: process.env.BIGSIGNAL_TUTOR_TOKEN,
-  textModel: process.env.OPENAI_TEXT_MODEL ?? "gpt-4.1-mini",
-  voiceModel: process.env.OPENAI_VOICE_MODEL ?? "gpt-realtime-2.1",
+  textModel: process.env.OPENAI_TEXT_MODEL || DEFAULT_TEXT_MODEL,
+  voiceModel: process.env.OPENAI_VOICE_MODEL || DEFAULT_VOICE_MODEL,
   origins: process.env.APP_ORIGIN
     ? process.env.APP_ORIGIN.split(",").map(
         (value) => new URL(value.trim()).origin,
@@ -29,7 +34,13 @@ if (
   );
 const handler = createTutorHandler(
   config,
-  createProvider(config.apiKey ?? "", config.textModel, config.voiceModel),
+  createProvider(
+    config.apiKey ?? "",
+    config.textModel,
+    config.voiceModel,
+    fetch,
+    readVoiceTuning(process.env),
+  ),
 );
 const root = resolve("apps/web/dist");
 const mime: Record<string, string> = {

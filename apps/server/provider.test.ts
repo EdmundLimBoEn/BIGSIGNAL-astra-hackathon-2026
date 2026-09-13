@@ -183,3 +183,104 @@ describe("tutor workspace tools", () => {
     expect(context.scenario!.transmitter.powerDbm).not.toBe(25);
   });
 });
+
+describe("tutor model and voice tuning", () => {
+  it.each(["gpt-5.4-mini", "gpt-5.4-mini-2026-03-17"])(
+    "uses concise reasoning settings and sufficient reasoning budget for %s",
+    async (model) => {
+      sdk.run.mockResolvedValue({ finalOutput: "Explained." });
+      await createProvider("test", model, "voice").chat(
+        messages,
+        context,
+        new AbortController().signal,
+      );
+      expect(sdk.run.mock.lastCall![0]).toMatchObject({
+        model,
+        modelSettings: {
+          maxTokens: 4096,
+          reasoning: { effort: "low" },
+          text: { verbosity: "low" },
+          store: false,
+          parallelToolCalls: false,
+        },
+      });
+    },
+  );
+
+  it.each(["gpt-4.1-mini", "custom-model", "gpt-5.4-minimal"])(
+    "keeps unsupported model settings out of %s requests",
+    async (model) => {
+      sdk.run.mockResolvedValue({ finalOutput: "Explained." });
+      await createProvider("test", model, "voice").chat(
+        messages,
+        context,
+        new AbortController().signal,
+      );
+      expect(sdk.run.mock.lastCall![0]).toMatchObject({ model });
+      expect(sdk.run.mock.lastCall![0].modelSettings).toEqual({
+        maxTokens: 1200,
+        store: false,
+        parallelToolCalls: false,
+      });
+    },
+  );
+
+  it.each([
+    {
+      label: "default",
+      tuning: undefined,
+      threshold: 0.7,
+      silence: 1000,
+      noise: "near_field",
+    },
+    {
+      label: "custom",
+      tuning: {
+        threshold: 0.85,
+        silenceMs: 1500,
+        noiseReduction: "far_field" as const,
+      },
+      threshold: 0.85,
+      silence: 1500,
+      noise: "far_field",
+    },
+  ])(
+    "sends $label microphone tuning to the Realtime API",
+    async ({ tuning, threshold, silence, noise }) => {
+      const request = vi.fn<typeof fetch>(
+        async () => new Response("v=0\r\nanswer"),
+      );
+      const signal = new AbortController().signal;
+      await createProvider(
+        "test",
+        "text",
+        "gpt-realtime-2.1-mini",
+        request,
+        tuning,
+      ).realtime("v=0\r\no=offer", context, signal);
+      expect(request).toHaveBeenCalledWith(
+        "https://api.openai.com/v1/realtime/calls",
+        expect.objectContaining({ signal }),
+      );
+      const form = request.mock.calls[0]![1]!.body as FormData;
+      const session = JSON.parse(form.get("session") as string);
+      expect(session.model).toBe("gpt-realtime-2.1-mini");
+      expect(session.audio.input).toEqual({
+        transcription: { model: "gpt-4o-mini-transcribe" },
+        noise_reduction: { type: noise },
+        turn_detection: {
+          type: "server_vad",
+          threshold,
+          prefix_padding_ms: 300,
+          silence_duration_ms: silence,
+          create_response: true,
+          interrupt_response: true,
+        },
+      });
+      expect(session.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        "inspect_experiment",
+        "update_experiment",
+      ]);
+    },
+  );
+});

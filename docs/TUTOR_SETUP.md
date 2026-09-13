@@ -17,12 +17,22 @@ The optional tutor uses the OpenAI Agents SDK for text and OpenAI Realtime WebRT
 | Variable                | Default                | Purpose                                                            |
 | ----------------------- | ---------------------- | ------------------------------------------------------------------ |
 | `OPENAI_API_KEY`        | unset                  | Required for text and voice; server only                           |
-| `OPENAI_TEXT_MODEL`     | `gpt-4.1-mini`         | Agents SDK model                                                   |
-| `OPENAI_VOICE_MODEL`    | `gpt-realtime-2.1`     | Realtime model; requires account access                            |
+| `OPENAI_TEXT_MODEL`     | `gpt-5.4-mini`         | Agents SDK model                                                   |
+| `OPENAI_VOICE_MODEL`    | `gpt-realtime-2.1-mini`     | Realtime model; requires account access                            |
 | `BIGSIGNAL_TUTOR_TOKEN` | unset                  | Optional local classroom access code; mandatory for public binding |
 | `APP_ORIGIN`            | listed localhost ports | Exact allowed browser origins, comma separated                     |
 | `HOST`                  | `127.0.0.1`            | Binding address; public binding requires origin and access code    |
 | `PORT`                  | `8787`                 | Application and API server port                                    |
+
+The default text model is GPT-5.4 Mini with low reasoning effort and low verbosity. Its 4,096-token output budget includes internal reasoning and tool arguments; the tutor prompt still targets 30–60 visible words. GPT-Realtime-2.1 Mini is the voice default, with GPT-4o Mini Transcribe for captions. These are speed/cost starting points, not a measured quality or latency guarantee for this course. Override the two model variables to compare against a larger model. Other text models retain their existing request settings to avoid sending unsupported reasoning options.
+
+Voice uses a 0.7 activation threshold, 300 ms of leading audio, and 1,000 ms of silence before replying. Browser echo cancellation/noise suppression and server noise reduction are enabled; automatic microphone gain is disabled to avoid amplifying quiet background sounds. Natural interruptions remain enabled, subject to the higher threshold.
+
+- `OPENAI_VOICE_THRESHOLD`: default `0.7`. Raise toward `0.8` if quiet noises still trigger speech; lower toward `0.6` if soft speech is missed.
+- `OPENAI_VOICE_SILENCE_MS`: default `1000`, allowed `300`–`3000`. Increase for longer thinking pauses, at the cost of slower replies.
+- `OPENAI_VOICE_NOISE_REDUCTION`: `near_field` (default) for a close microphone/headset, or `far_field` for a distant laptop microphone.
+
+Restart your server after configuration edits and reconnect voice. Verify in your actual room: keyboard clicks and a brief breath should not start a turn; normal speech should; a short pause should not cut off your sentence. Microphone and room-specific behaviour requires listening tests.
 
 To deploy the server, use a Bun-capable host behind HTTPS with `HOST=0.0.0.0`, `APP_ORIGIN=https://your-domain.example` and a strong `BIGSIGNAL_TUTOR_TOKEN`. Set provider spend limits in your OpenAI project. A static-only Pages deployment cannot run these API routes. No hosting target or paid infrastructure has been provisioned.
 
@@ -51,3 +61,5 @@ After setting a real key, perform this live check: ask why adding 10 dB of power
 - [Tracing controls](https://openai.github.io/openai-agents-js/guides/tracing/)
 - [Realtime API calls](https://platform.openai.com/docs/api-reference/realtime)
 - [Realtime WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc)
+
+Model and VAD choices follow the [official GPT-5.4 Mini documentation](https://developers.openai.com/api/docs/models/gpt-5.4-mini), [Realtime 2.1 Mini documentation](https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini), and [voice activity detection guide](https://developers.openai.com/api/docs/guides/realtime-vad).

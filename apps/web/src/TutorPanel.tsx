@@ -295,7 +295,11 @@ export function TutorPanel({
     }, 25000);
     try {
       const mic = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
+        },
       });
       if (version !== generation.current) {
         mic.getTracks().forEach((t) => t.stop());

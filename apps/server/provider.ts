@@ -8,6 +8,7 @@ import {
   setTracingDisabled,
 } from "@openai/agents";
 import { z } from "zod";
+import { DEFAULT_VOICE_TUNING, type VoiceTuning } from "./tuning";
 import {
   buildTutorInstructions,
   describeTutorContext,
@@ -45,6 +46,7 @@ export function createProvider(
   textModel: string,
   voiceModel: string,
   request: typeof fetch = fetch,
+  voiceTuning: VoiceTuning = DEFAULT_VOICE_TUNING,
 ): TutorProvider {
   const runner = new Runner({
     modelProvider: new OpenAIProvider({ apiKey, useResponses: true }),
@@ -61,6 +63,13 @@ export function createProvider(
         instructions: buildTutorInstructions(context),
         modelSettings: {
           maxTokens: 1200,
+          ...(/^gpt-5\.4-mini(?:-|$)/.test(textModel)
+            ? {
+                maxTokens: 4096,
+                reasoning: { effort: "low" as const },
+                text: { verbosity: "low" as const },
+              }
+            : {}),
           store: false,
           parallelToolCalls: false,
         },
@@ -176,8 +185,12 @@ export function createProvider(
           audio: {
             input: {
               transcription: { model: "gpt-4o-mini-transcribe" },
+              noise_reduction: { type: voiceTuning.noiseReduction },
               turn_detection: {
                 type: "server_vad",
+                threshold: voiceTuning.threshold,
+                prefix_padding_ms: 300,
+                silence_duration_ms: voiceTuning.silenceMs,
                 create_response: true,
                 interrupt_response: true,
               },
