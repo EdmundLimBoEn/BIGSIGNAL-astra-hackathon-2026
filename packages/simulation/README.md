@@ -142,3 +142,13 @@ git rev-parse HEAD
 The CLI prints JSON results to stdout. Errors use JSON on stderr and exit code 1. A JSON file with invalid scenario fields includes an `issues` array.
 
 Core scope covers units, FSPL, link budgets, noise, mode profiles, terrain, simplified HF, counterfactual ranking, and validation. Tutor agents, cloud services, voice, custom NEC antenna solving, and Computer B's globe UI are outside this backend implementation.
+
+## Run the backend test viewer
+
+```sh
+bunx vite packages/simulation/playground --host 127.0.0.1 --port 5174 --strictPort
+```
+
+Open `http://127.0.0.1:5174` for scenario controls, live engine results, and a 3D globe/path preview. This is an isolated backend test viewer. Computer B's final globe UI remains in `apps/web`.
+
+See [model coverage](MODEL_COVERAGE.md) for the distinction between implemented terrain/ionospheric approximations and missing buildings, multipath, and space-weather effects.
