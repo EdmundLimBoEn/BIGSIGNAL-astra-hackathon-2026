@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { TutorMarkdown } from "./TutorMarkdown";
-import type {
-  TutorContext,
-  TutorMessage,
+import { runVoiceTools, stageTutorActions } from "./tutorActions";
+import {
+  buildTutorInstructions,
+  type TutorContext,
+  type TutorMessage,
 } from "../../../packages/tutor/context";
 import {
   boundedTutorHistory,
@@ -23,7 +25,13 @@ type Service = {
   textModel: string;
   voiceModel: string;
 };
-export function TutorPanel({ context }: { context: TutorContext }) {
+export function TutorPanel({
+  context,
+  onApplyContext,
+}: {
+  context: TutorContext;
+  onApplyContext: (next: TutorContext, expected: TutorContext) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [service, setService] = useState<Service | null>(null);
   const [availability, setAvailability] = useState("");
@@ -35,6 +43,11 @@ export function TutorPanel({ context }: { context: TutorContext }) {
   const [voice, setVoice] = useState<VoicePhase>("idle");
   const [muted, setMuted] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [undo, setUndo] = useState<{
+    before: TutorContext;
+    after: TutorContext;
+  } | null>(null);
+  const [changeNotice, setChangeNotice] = useState("");
   const peer = useRef<RTCPeerConnection | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -46,10 +59,36 @@ export function TutorPanel({ context }: { context: TutorContext }) {
   const voiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentContext = useRef(context);
+  const voiceContext = useRef(context);
+  const applyContext = useRef(onApplyContext);
+  applyContext.current = onApplyContext;
   const end = useRef<HTMLDivElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   currentContext.current = context;
   const contextKey = JSON.stringify(context);
+  function commitChanges(next: TutorContext, expected: TutorContext) {
+    applyContext.current(next, expected);
+    currentContext.current = next;
+    setUndo({
+      before: structuredClone(expected),
+      after: structuredClone(next),
+    });
+    setChangeNotice("Signal updated the workspace and ran a demonstration.");
+  }
+  function undoChanges() {
+    if (!undo) return;
+    try {
+      applyContext.current(undo.before, undo.after);
+      currentContext.current = undo.before;
+      setUndo(null);
+      setChangeNotice("Restored the setup before Signal’s last change.");
+    } catch {
+      setUndo(null);
+      setChangeNotice(
+        "The setup has changed since then, so undo could not restore it.",
+      );
+    }
+  }
   const headers = () => ({
     "Content-Type": "application/json",
     ...(code ? { Authorization: `Bearer ${code}` } : {}),
@@ -110,22 +149,29 @@ export function TutorPanel({ context }: { context: TutorContext }) {
     const abort = new AbortController();
     const timer = setTimeout(async () => {
       try {
+        const snapshot = structuredClone(currentContext.current);
         const response = await fetch("/api/tutor/context", {
           method: "POST",
           headers: headers(),
-          body: JSON.stringify({ context: currentContext.current }),
+          body: JSON.stringify({ context: snapshot }),
           signal: abort.signal,
         });
         if (!response.ok) throw new Error();
         const data = await response.json();
         if (typeof data.instructions !== "string") throw new Error();
-        if (channel.current?.readyState === "open")
+        if (
+          channel.current?.readyState === "open" &&
+          !abort.signal.aborted &&
+          JSON.stringify(snapshot) === JSON.stringify(currentContext.current)
+        ) {
           channel.current.send(
             JSON.stringify({
               type: "session.update",
               session: { type: "realtime", instructions: data.instructions },
             }),
           );
+          voiceContext.current = snapshot;
+        }
       } catch {
         if (!abort.signal.aborted) {
           setError(
@@ -168,13 +214,14 @@ export function TutorPanel({ context }: { context: TutorContext }) {
     setError("");
     const abort = new AbortController();
     request.current = abort;
+    const snapshot = structuredClone(currentContext.current);
     const timer = setTimeout(() => abort.abort("timeout"), 60000);
     try {
       const response = await fetch("/api/tutor/chat", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
-          context: currentContext.current,
+          context: snapshot,
           messages: boundedTutorHistory(conversation),
         }),
         signal: abort.signal,
@@ -188,6 +235,17 @@ export function TutorPanel({ context }: { context: TutorContext }) {
         );
       if (typeof data.text !== "string" || !data.text.trim())
         throw new Error("The tutor returned no answer. Please try again.");
+      if (
+        abort.signal.aborted ||
+        JSON.stringify(snapshot) !== JSON.stringify(currentContext.current)
+      )
+        throw new Error(
+          "The workspace changed. Send again to use the new setup.",
+        );
+      if (data.actions !== undefined) {
+        const next = stageTutorActions(snapshot, data.actions);
+        if (data.actions.length) commitChanges(next, snapshot);
+      }
       setMessages((m) =>
         [
           ...m,
@@ -261,6 +319,9 @@ export function TutorPanel({ context }: { context: TutorContext }) {
       };
       mic.getTracks().forEach((track) => pc.addTrack(track, mic));
       const dc = pc.createDataChannel("oai-events");
+      const seenCalls = new Set<string>();
+      const responseSnapshots = new Map<string, TutorContext>();
+      let toolRounds = 0;
       channel.current = dc;
       dc.onopen = () => {
         if (version !== generation.current) return;
@@ -302,7 +363,54 @@ export function TutorPanel({ context }: { context: TutorContext }) {
       dc.onmessage = (e) => {
         if (version !== generation.current) return;
         try {
-          const event = parseVoiceEvent(JSON.parse(e.data));
+          const raw = JSON.parse(e.data);
+          if (raw.type === "input_audio_buffer.speech_started") toolRounds = 0;
+          if (
+            raw.type === "response.created" &&
+            typeof raw.response?.id === "string"
+          )
+            responseSnapshots.set(
+              raw.response.id,
+              structuredClone(voiceContext.current),
+            );
+          if (raw.type === "response.done") {
+            const snapshot = responseSnapshots.get(raw.response?.id);
+            if (snapshot) {
+              const outputs = runVoiceTools(
+                raw,
+                snapshot,
+                currentContext.current,
+                seenCalls,
+                commitChanges,
+              );
+              outputs.forEach((output) => dc.send(JSON.stringify(output)));
+              if (outputs.length) {
+                voiceContext.current = structuredClone(currentContext.current);
+                dc.send(
+                  JSON.stringify({
+                    type: "session.update",
+                    session: {
+                      type: "realtime",
+                      instructions: buildTutorInstructions(
+                        voiceContext.current,
+                        true,
+                      ),
+                    },
+                  }),
+                );
+                dc.send(
+                  JSON.stringify({
+                    type: "response.create",
+                    response: {
+                      tool_choice: ++toolRounds >= 8 ? "none" : "auto",
+                    },
+                  }),
+                );
+              } else toolRounds = 0;
+            }
+            responseSnapshots.delete(raw.response?.id);
+          }
+          const event = parseVoiceEvent(raw);
           if (event?.type === "phase") setVoice(event.phase);
           if (event?.type === "error") {
             setError(event.message);
@@ -340,12 +448,13 @@ export function TutorPanel({ context }: { context: TutorContext }) {
       await pc.setLocalDescription(offer);
       const connectAbort = new AbortController();
       voiceRequest.current = connectAbort;
+      voiceContext.current = structuredClone(currentContext.current);
       const response = await fetch("/api/tutor/realtime", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
           sdp: offer.sdp,
-          context: currentContext.current,
+          context: voiceContext.current,
         }),
         signal: connectAbort.signal,
       });
@@ -409,7 +518,13 @@ export function TutorPanel({ context }: { context: TutorContext }) {
             {context.network
               ? "Your disaster network"
               : (context.scenario?.title ?? "Your radio course")}
-            <small>Uses your current setup and the RF engine</small>
+            <small>Can adjust your setup and explain the RF results</small>
+            {changeNotice && <small role="status">{changeNotice}</small>}
+            {undo && (
+              <button type="button" onClick={undoChanges} disabled={busy}>
+                Undo tutor change
+              </button>
+            )}
           </div>
           <div
             className="tutor-conversation"

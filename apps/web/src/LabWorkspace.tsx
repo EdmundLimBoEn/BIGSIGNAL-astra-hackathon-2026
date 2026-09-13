@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Scenario, SimulationResult } from "../../../packages/contracts";
 import type {
   ControlId,
@@ -39,8 +39,10 @@ export function LabWorkspace({
   teacher,
   physics = REAL_PHYSICS,
   onPhysics,
+  tutorRunRevision = 0,
 }: {
   scenario: Scenario;
+  tutorRunRevision?: number;
   onChange: (s: Scenario) => void;
   graphics: Graphics;
   onGraphics: (g: Graphics) => void;
@@ -75,11 +77,47 @@ export function LabWorkspace({
   const [reduced, setReduced] = useState(
     () => matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
+  const lastInputs = useRef<{
+    scenario: Scenario;
+    physics: PhysicsSettings;
+    extreme: boolean;
+    revision: number;
+  } | null>(null);
   useEffect(() => {
+    const previous = lastInputs.current;
+    if (
+      previous?.scenario === scenario &&
+      previous.physics === physics &&
+      previous.extreme === extreme &&
+      previous.revision === tutorRunRevision
+    )
+      return;
+    lastInputs.current = {
+      scenario,
+      physics,
+      extreme,
+      revision: tutorRunRevision,
+    };
     setResult(null);
     setRunning(false);
     if (scenario.environment.model === "hf-skywave") setView("globe");
-  }, [scenario, physics]);
+    if (!tutorRunRevision || previous?.revision === tutorRunRevision) return;
+    try {
+      setResult(simulateLaboratory(scenario, extreme ? physics : REAL_PHYSICS));
+      setPanel("results");
+      setMobilePanel("workspace");
+      setNotice(
+        "Tutor demonstration. Try your own prediction and experiment next.",
+      );
+    } catch (error) {
+      setResult(null);
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "The demonstration could not run.",
+      );
+    }
+  }, [tutorRunRevision, scenario, physics, extreme]);
   useEffect(() => {
     if (!running) return;
     const timer = setTimeout(() => setRunning(false), reduced ? 100 : 1800);

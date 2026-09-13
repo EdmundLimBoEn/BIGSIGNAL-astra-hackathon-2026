@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { Scenario } from "../../../packages/contracts";
 import {
   createDisasterNetwork,
@@ -125,9 +125,11 @@ function linkScenario(network: NetworkScenario, link: NetworkLink): Scenario {
 export function DisasterLab({
   onOpenLab,
   onContextChange,
+  tutorUpdate,
 }: {
   onOpenLab?: (scenario: Scenario) => void;
   onContextChange?: (network: NetworkScenario) => void;
+  tutorUpdate?: { network: NetworkScenario; revision: number };
 }) {
   const [state, setState] = useState(loadState);
   const [focus, setFocus] = useState<"brief" | "network" | "results">(
@@ -154,6 +156,34 @@ export function DisasterLab({
   useEffect(() => {
     onContextChange?.(network);
   }, [network, onContextChange]);
+  const appliedTutorRevision = useRef(0);
+  useEffect(() => {
+    if (!tutorUpdate || tutorUpdate.revision === appliedTutorRevision.current)
+      return;
+    appliedTutorRevision.current = tutorUpdate.revision;
+    try {
+      const nextNetwork = tutorUpdate.network;
+      const result = simulateNetwork(nextNetwork);
+      setState((previous) => ({ ...previous, network: nextNetwork }));
+      setRun({
+        network: nextNetwork,
+        result,
+        prediction: "Tutor demonstration",
+      });
+      setPlacing(false);
+      setFocus("results");
+      setError("");
+      setNotice(
+        "Tutor demonstration. The network and results now show Signal’s changes.",
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "The demonstration could not run.",
+      );
+    }
+  }, [tutorUpdate]);
   const story = disasters.find((d) => d.id === state.preset)!;
   const node =
     network.nodes.find((n) => n.id === selectedId) ?? network.nodes[0];

@@ -16,13 +16,24 @@ import {
   type TutorContext,
   type TutorMessage,
 } from "../../packages/tutor/context";
+import {
+  applyTutorAction,
+  tutorActionSchema,
+  tutorActionJsonSchema,
+  tutorActionDescription,
+  type TutorAction,
+} from "../../packages/tutor/actions";
 setTracingDisabled(true);
+export interface TutorChatResult {
+  text: string;
+  actions: TutorAction[];
+}
 export interface TutorProvider {
   chat(
     messages: TutorMessage[],
     context: TutorContext,
     signal: AbortSignal,
-  ): Promise<string>;
+  ): Promise<string | TutorChatResult>;
   realtime(
     sdp: string,
     context: TutorContext,
@@ -35,20 +46,65 @@ export function createProvider(
   voiceModel: string,
   request: typeof fetch = fetch,
 ): TutorProvider {
+  const runner = new Runner({
+    modelProvider: new OpenAIProvider({ apiKey, useResponses: true }),
+    tracingDisabled: true,
+    traceIncludeSensitiveData: false,
+  });
   return {
     async chat(messages, context, signal) {
+      let workingContext = structuredClone(context);
+      const actions: TutorAction[] = [];
       const agent = new Agent({
         name: "Signal radio tutor",
         model: textModel,
         instructions: buildTutorInstructions(context),
-        modelSettings: { maxTokens: 1200, store: false },
+        modelSettings: {
+          maxTokens: 1200,
+          store: false,
+          parallelToolCalls: false,
+        },
         tools: [
           tool({
             name: "inspect_experiment",
             description:
               "Read the current authoritative simulation result and model assumptions.",
             parameters: z.object({}),
-            execute: async () => JSON.stringify(describeTutorContext(context)),
+            execute: async () =>
+              JSON.stringify(describeTutorContext(workingContext)),
+          }),
+          tool({
+            name: "update_experiment",
+            description:
+              tutorActionDescription +
+              " Changes are staged together until this reply finishes successfully. Each result includes the updated authoritative experiment, so inspect again only when needed.",
+            parameters: tutorActionSchema,
+            strict: true,
+            execute: async (input) => {
+              try {
+                if (signal.aborted)
+                  throw new Error("The request was cancelled.");
+                if (actions.length >= 20)
+                  throw new Error("Limit this explanation to 20 edits.");
+                const action = tutorActionSchema.parse(input);
+                const next = applyTutorAction(workingContext, action);
+                const experiment = describeTutorContext(next);
+                workingContext = next;
+                actions.push(action);
+                return JSON.stringify({
+                  pendingWorkspaceUpdate: true,
+                  action,
+                  experiment,
+                });
+              } catch (error) {
+                return JSON.stringify({
+                  error:
+                    error instanceof Error
+                      ? error.message
+                      : "Invalid experiment change.",
+                });
+              }
+            },
           }),
           tool({
             name: "lookup_lesson",
@@ -68,14 +124,9 @@ export function createProvider(
               rxHeightM: z.number().min(0).max(20000).nullable(),
             }),
             execute: async (changes) =>
-              JSON.stringify(simulateWhatIf(context, changes)),
+              JSON.stringify(simulateWhatIf(workingContext, changes)),
           }),
         ],
-      });
-      const runner = new Runner({
-        modelProvider: new OpenAIProvider({ apiKey }),
-        tracingDisabled: true,
-        traceIncludeSensitiveData: false,
       });
       const result = await runner.run(
         agent,
@@ -84,11 +135,12 @@ export function createProvider(
             ? user(message.content)
             : assistant(message.content),
         ),
-        { maxTurns: 5, signal },
+        { maxTurns: 8, signal },
       );
       if (typeof result.finalOutput !== "string" || !result.finalOutput.trim())
         throw new Error("Empty provider response");
-      return result.finalOutput;
+      if (signal.aborted) throw new Error("The request was cancelled.");
+      return { text: result.finalOutput, actions };
     },
     async realtime(sdp, context, signal) {
       const form = new FormData();
@@ -100,6 +152,27 @@ export function createProvider(
           model: voiceModel,
           instructions: buildTutorInstructions(context, true),
           max_output_tokens: 1000,
+          tools: [
+            {
+              type: "function",
+              name: "inspect_experiment",
+              description:
+                "Read the current visible experiment, component IDs, and authoritative simulation result.",
+              parameters: {
+                type: "object",
+                properties: {},
+                required: [],
+                additionalProperties: false,
+              },
+            },
+            {
+              type: "function",
+              name: "update_experiment",
+              description: tutorActionDescription,
+              parameters: tutorActionJsonSchema,
+            },
+          ],
+          tool_choice: "auto",
           audio: {
             input: {
               transcription: { model: "gpt-4o-mini-transcribe" },

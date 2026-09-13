@@ -51,6 +51,26 @@ describe("tutor API boundaries", () => {
     expect((await handler(request())).status).toBe(503);
     expect(p.chat).not.toHaveBeenCalled();
   });
+  it("returns text and staged workspace actions in the chat envelope", async () => {
+    const p = provider();
+    const action = {
+      target: "transmitter" as const,
+      targetId: null,
+      field: "powerDbm" as const,
+      value: 25,
+    };
+    p.chat = async () => ({ text: "I raised the power.", actions: [action] });
+    const h = createTutorHandler(config, p);
+    expect(await (await h(request())).json()).toEqual({
+      text: "I raised the power.",
+      actions: [action],
+    });
+    p.chat = async () => "No changes.";
+    expect(await (await h(request())).json()).toEqual({
+      text: "No changes.",
+      actions: [],
+    });
+  });
   it("rejects a foreign origin and forged cross-site request", async () => {
     const p = provider();
     const h = createTutorHandler(config, p);
@@ -219,9 +239,7 @@ describe("grounded read-only tools", () => {
   });
   it("omits assessment answer keys and labels voice calculation limits", () => {
     expect(lookupLesson(lessons[0]!.id)).not.toHaveProperty("prediction");
-    expect(buildTutorInstructions(context, true)).toContain(
-      "no simulation tool in voice mode",
-    );
+    expect(buildTutorInstructions(context, true)).toContain("engineResult");
   });
   it("refuses unknown context and messages", () => {
     expect(() => parseTutorContext({ mode: "unknown" })).toThrow();
@@ -247,6 +265,11 @@ describe("grounded read-only tools", () => {
       (args.body as FormData).get("session") as string,
     );
     expect(session.model).toBe("voice");
+    expect(session.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      "inspect_experiment",
+      "update_experiment",
+    ]);
+    expect(session.tools[1].parameters.additionalProperties).toBe(false);
     expect(session.instructions).toContain("engineResult");
   });
   it("rejects malformed or failed voice upstream responses", async () => {

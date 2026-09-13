@@ -163,7 +163,9 @@ export function createTutorHandler(
         }
         work = provider
           .chat(messages, context, controller.signal)
-          .then((text) => ({ text }));
+          .then((result) =>
+            typeof result === "string" ? { text: result, actions: [] } : result,
+          );
       } else {
         if (
           typeof body.sdp !== "string" ||

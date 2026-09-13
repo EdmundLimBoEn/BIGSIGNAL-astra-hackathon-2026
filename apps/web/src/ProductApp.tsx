@@ -15,6 +15,7 @@ import {
 } from "../../../packages/missions/product";
 import { LabWorkspace } from "./LabWorkspace";
 import { TutorPanel } from "./TutorPanel";
+import type { TutorContext } from "../../../packages/tutor/context";
 import type { NetworkScenario } from "../../../packages/simulation/src/network";
 import { DisasterLab } from "./DisasterLab";
 import { TsunamiLevel } from "./TsunamiLevel";
@@ -110,6 +111,11 @@ function Product() {
     "brief" | "experiment" | "reflect"
   >("brief");
   const [tutorNetwork, setTutorNetwork] = useState<NetworkScenario>();
+  const [tutorRunRevision, setTutorRunRevision] = useState(0);
+  const [tutorNetworkUpdate, setTutorNetworkUpdate] = useState<{
+    network: NetworkScenario;
+    revision: number;
+  }>();
   const [tier, setTier] = useState<Difficulty>("beginner");
   const [notice, setNotice] = useState("");
   const [resetKey, setResetKey] = useState(0);
@@ -139,6 +145,8 @@ function Product() {
     setState((s) => ({ ...s, experiment: change(s.experiment) }));
   }
   function navigate(next: Page) {
+    setTutorRunRevision(0);
+    setTutorNetworkUpdate(undefined);
     if (next === "lab" && page === "learn" && lesson)
       setState((s) => ({
         ...s,
@@ -158,6 +166,7 @@ function Product() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function openLesson(l: Lesson) {
+    setTutorRunRevision(0);
     setLessonPhase("brief");
     setState((s) => ({
       ...s,
@@ -190,6 +199,7 @@ function Product() {
     }));
   }
   function openExperiment(e: PortableExperiment) {
+    setTutorRunRevision(0);
     setState((s) => ({
       ...s,
       onboarded: true,
@@ -270,10 +280,58 @@ function Product() {
   }
   const setScenario = (scenario: Scenario) =>
     changeExperiment((e) => ({ ...e, scenario }));
+  const tutorContext: TutorContext =
+    page === "disaster"
+      ? { mode: "disaster", network: tutorNetwork }
+      : {
+          mode:
+            page === "unreasonable"
+              ? "unreasonable"
+              : page === "learn" && lesson && state.onboarded
+                ? "learn"
+                : "lab",
+          scenario: experiment.scenario,
+          physics: experiment.physics,
+          lessonId: lesson?.id,
+        };
+  const latestTutorContext = useRef(tutorContext);
+  latestTutorContext.current = tutorContext;
+  function applyTutorContext(next: TutorContext, expected: TutorContext) {
+    if (JSON.stringify(latestTutorContext.current) !== JSON.stringify(expected))
+      throw new Error(
+        "The workspace changed. Ask Signal to use your current setup.",
+      );
+    if (next.mode !== expected.mode)
+      throw new Error("The tutor cannot switch learning modes.");
+    if (next.mode === "disaster") {
+      if (!next.network) throw new Error("No disaster network is open.");
+      latestTutorContext.current = {
+        ...latestTutorContext.current,
+        network: next.network,
+      };
+      setTutorNetwork(next.network);
+      setTutorNetworkUpdate((previous) => ({
+        network: next.network!,
+        revision: (previous?.revision ?? 0) + 1,
+      }));
+    } else {
+      if (!next.scenario) throw new Error("No experiment is open.");
+      latestTutorContext.current = {
+        ...latestTutorContext.current,
+        scenario: next.scenario,
+      };
+      setScenario(next.scenario);
+      setTutorRunRevision((revision) => revision + 1);
+      if (page === "learn" && lesson && state.onboarded)
+        setLessonPhase("experiment");
+      else if (page !== "lab" && page !== "unreasonable") setPage("lab");
+    }
+  }
   const workspace = (guided = false) => (
     <LabWorkspace
       key={`${resetKey}-${guided ? lesson?.id : "free"}-${page}`}
       scenario={experiment.scenario}
+      tutorRunRevision={tutorRunRevision}
       onChange={setScenario}
       graphics={experiment.settings.graphics}
       onGraphics={(graphics) =>
@@ -880,6 +938,7 @@ function Product() {
             </button>
             <DisasterLab
               onContextChange={setTutorNetwork}
+              tutorUpdate={tutorNetworkUpdate}
               onOpenLab={(scenario) =>
                 openExperiment({
                   ...defaultExperiment(),
@@ -1096,23 +1155,7 @@ function Product() {
         )}
       </main>
       {page !== "tsunami" && (
-        <TutorPanel
-          context={
-            page === "disaster"
-              ? { mode: "disaster", network: tutorNetwork }
-              : {
-                  mode:
-                    page === "unreasonable"
-                      ? "unreasonable"
-                      : page === "learn"
-                        ? "learn"
-                        : "lab",
-                  scenario: experiment.scenario,
-                  physics: experiment.physics,
-                  lessonId: lesson?.id,
-                }
-          }
-        />
+        <TutorPanel context={tutorContext} onApplyContext={applyTutorContext} />
       )}
       <footer className="product-footer">
         <span>

@@ -15,7 +15,7 @@ Open the local URL printed by Vite. First launch starts a guided lesson without 
 
 Lessons use Brief, Experiment, and Reflect steps. The lab keeps the map and radio controls together, with direct views for results, comparisons, instruments, and physics settings. SEND IT stays within reach. Disaster Lab opens on the network, with separate briefing and result views.
 
-**Ask Signal** opens the optional AI tutor beside the lab on desktop or as a compact panel on mobile. It receives the current experiment or disaster network, answers text questions with read-only engine tools, and supports spoken conversations through OpenAI Realtime. Setup is in [Signal tutor setup](docs/TUTOR_SETUP.md). No key is required for the lessons or simulation.
+**Ask Signal** opens the optional AI tutor beside the lab on desktop or as a compact panel on mobile. It receives the current experiment or disaster network, answers text questions with engine tools and can demonstrate changes directly in the workspace, with undo, and supports spoken conversations through OpenAI Realtime. Setup is in [Signal tutor setup](docs/TUTOR_SETUP.md). No key is required for the lessons or simulation.
 
 ## Explore the four modes
 
