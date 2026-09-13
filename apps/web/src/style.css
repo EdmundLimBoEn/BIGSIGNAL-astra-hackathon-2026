@@ -1,0 +1,8 @@
+body { margin: 0; background: #10191b; color: #edf5ef; font: 18px/1.6 system-ui, sans-serif; }
+main { max-width: 900px; margin: 8vh auto; padding: 24px; }
+h1 { color: #c2f879; font-size: clamp(28px, 5vw, 54px); }
+button { font: inherit; font-weight: 700; padding: 12px 20px; margin: 8px 12px 8px 0; border: 1px solid #c2f879; border-radius: 4px; background: #c2f879; color: #10191b; cursor: pointer; }
+button:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+section { margin-top: 32px; }
+dl { display: flex; flex-wrap: wrap; gap: 32px; }
+dd { margin: 0; font-size: 28px; }

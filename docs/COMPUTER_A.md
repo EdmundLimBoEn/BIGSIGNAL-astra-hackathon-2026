@@ -2,15 +2,17 @@
 
 ## Current state
 
-Computer A initialized the documentation repository. No engine implementation has started. The next milestone is coordinated Phase 0, followed by A1.
+Computer A added the runnable bootstrap, draft contracts, mock, units, FSPL, link budget, and noise primitives. The next milestone is the canonical `simulateScenario` adapter with input validation, calculation provenance, SNR, and mode profiles.
+
+The UI still uses mocked output. Do not claim Integration 1 has passed.
 
 ## Implementation order
 
 - [ ] Phase 0. Install the baseline stack, create scripts, agree on complete contracts, and publish deterministic mocks.
-- [ ] A1. Implement and test W, mW, dBm, dB, Hz, MHz, m, and km conversions.
-- [ ] A2. Implement FSPL with frequency, distance, equation, units, and calculation provenance.
-- [ ] A3. Implement transmitter and receiver link budget terms.
-- [ ] A4. Implement thermal noise, receiver noise figure, and SNR.
+- [x] A1. Implement and test W, mW, dBm, dB, Hz, MHz, m, and km conversions.
+- [ ] A2. FSPL numeric primitive implemented and tested. Add structured calculation provenance.
+- [x] A3. Implement transmitter and receiver link budget terms.
+- [ ] A4. Thermal noise and receiver noise figure implemented and tested. Add SNR through the scenario adapter.
 - [ ] Integration 1. Verify the 5 W to 50 W example through the UI.
 - [ ] A5. Add educational FM voice, SSB, CW, and FT8 profiles with references and confidence.
 - [ ] A6. Add bundled VHF terrain, radio horizon, and a single knife-edge obstruction.
