@@ -924,7 +924,13 @@ function Product() {
           </>
         )}
         {page === "tsunami" && (
-          <TsunamiLevel onExit={() => navigate("disaster")} />
+          <TsunamiLevel
+            onExit={() => navigate("disaster")}
+            onOpenLesson={(id) => {
+              const selected = lessons.find((lesson) => lesson.id === id);
+              if (selected) openLesson(selected);
+            }}
+          />
         )}
         {page === "disaster" && (
           <>
@@ -933,8 +939,8 @@ function Product() {
               onClick={() => navigate("tsunami")}
             >
               <span>REAL HISTORY · 2 MINUTES</span>
-              <strong>A hospital needs to be heard.</strong>
-              <span>Play the 2004 tsunami communication story ↗</span>
+              <strong>When hospitals needed a voice.</strong>
+              <span>Explore the 2004 tsunami hospital network ↗</span>
             </button>
             <DisasterLab
               onContextChange={setTutorNetwork}

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import type { Scenario, SimulationResult } from "../../../packages/contracts";
 import type {
   ControlId,
@@ -40,9 +47,13 @@ export function LabWorkspace({
   physics = REAL_PHYSICS,
   onPhysics,
   tutorRunRevision = 0,
+  renderScene,
+  keepSceneOnSend = false,
 }: {
   scenario: Scenario;
   tutorRunRevision?: number;
+  renderScene?: (props: ComponentProps<typeof Scene>) => ReactNode;
+  keepSceneOnSend?: boolean;
   onChange: (s: Scenario) => void;
   graphics: Graphics;
   onGraphics: (g: Graphics) => void;
@@ -132,7 +143,7 @@ export function LabWorkspace({
     try {
       const r = simulateLaboratory(scenario, extreme ? physics : REAL_PHYSICS);
       setResult(r);
-      setPanel("results");
+      setPanel(keepSceneOnSend ? "scene" : "results");
       setMobilePanel("workspace");
       setRunning(true);
       setNotice("");
@@ -335,31 +346,45 @@ export function LabWorkspace({
                         : "○ READY TO EXPERIMENT"}
                   </span>
                 </div>
-                <Scene
-                  band={band}
-                  view={view}
-                  graphics={graphics}
-                  scenario={scenario}
-                  paths={result?.propagationPaths ?? []}
-                  running={running && !reduced}
-                  fresnel={fresnel}
-                />
+                {renderScene ? (
+                  renderScene({
+                    band,
+                    view,
+                    graphics,
+                    scenario,
+                    paths: result?.propagationPaths ?? [],
+                    running: running && !reduced,
+                    fresnel,
+                  })
+                ) : (
+                  <Scene
+                    band={band}
+                    view={view}
+                    graphics={graphics}
+                    scenario={scenario}
+                    paths={result?.propagationPaths ?? []}
+                    running={running && !reduced}
+                    fresnel={fresnel}
+                  />
+                )}
                 <div className="scene-bottom">
-                  <div className="segmented compact">
-                    <button
-                      aria-pressed={view === "terrain"}
-                      disabled={scenario.environment.model === "hf-skywave"}
-                      onClick={() => setView("terrain")}
-                    >
-                      △ Terrain
-                    </button>
-                    <button
-                      aria-pressed={view === "globe"}
-                      onClick={() => setView("globe")}
-                    >
-                      ◎ Earth
-                    </button>
-                  </div>
+                  {!renderScene && (
+                    <div className="segmented compact">
+                      <button
+                        aria-pressed={view === "terrain"}
+                        disabled={scenario.environment.model === "hf-skywave"}
+                        onClick={() => setView("terrain")}
+                      >
+                        △ Terrain
+                      </button>
+                      <button
+                        aria-pressed={view === "globe"}
+                        onClick={() => setView("globe")}
+                      >
+                        ◎ Earth
+                      </button>
+                    </div>
+                  )}
                   <label>
                     Graphics
                     <select

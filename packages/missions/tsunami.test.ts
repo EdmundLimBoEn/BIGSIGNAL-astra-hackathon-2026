@@ -1,64 +1,111 @@
 import { describe, expect, it } from "vitest";
 import {
-  initialTsunamiState,
-  tsunamiReducer,
-  type TsunamiAction,
+  assessHospitalContact,
+  createHospitalScenario,
+  hospitalReplyScenario,
 } from "./tsunami";
+import { simulateScenario } from "../simulation/src";
+import { switchScenarioBand } from "../../apps/web/src/productDomain";
 
-const play = (...actions: TsunamiAction[]) =>
-  actions.reduce(tsunamiReducer, initialTsunamiState);
-
-describe("hospital communication exercise", () => {
-  it("requires independent power and a radio route before sending", () => {
-    const start = play({ type: "begin" }, { type: "connect" });
-    expect(start.phase).toBe("equipment");
-    expect(start.feedback).toContain("mains");
-    const battery = tsunamiReducer(start, { type: "power", value: "battery" });
-    expect(tsunamiReducer(battery, { type: "connect" }).feedback).toContain(
-      "phone",
-    );
-    const radio = play(
-      { type: "begin" },
-      { type: "route", value: "radio" },
-      { type: "connect" },
-    );
-    expect(radio.phase).toBe("equipment");
+describe("hospital radio experiments", () => {
+  it("uses the real engine for a regional voice message and reply", () => {
+    const s = createHospitalScenario();
+    const result = simulateScenario(s);
+    const contact = assessHospitalContact(s, result);
+    expect(contact.outward).toEqual(result);
+    expect(contact.reply).toEqual(simulateScenario(hospitalReplyScenario(s)));
+    expect(contact.voiceReady).toBe(true);
   });
-
-  it("does not acknowledge a vague request, then accepts a clear request", () => {
-    const connected = play(
-      { type: "begin" },
-      { type: "power", value: "battery" },
-      { type: "route", value: "radio" },
-      { type: "connect" },
+  it("cannot solve the Medan VHF horizon with more watts", () => {
+    const s = switchScenarioBand(
+      createHospitalScenario("meulaboh-medan"),
+      "VHF",
     );
-    expect(connected.phase).toBe("message");
-    const vague = tsunamiReducer(connected, { type: "send", message: "vague" });
-    expect(vague.phase).toBe("message");
-    expect(vague.feedback).toContain("who is calling");
-    const done = tsunamiReducer(vague, { type: "send", message: "clear" });
-    expect(done.phase).toBe("acknowledged");
-    expect(tsunamiReducer(done, { type: "reset" })).toEqual(
-      initialTsunamiState,
+    expect(assessHospitalContact(s, simulateScenario(s)).voiceReady).toBe(
+      false,
+    );
+    s.transmitter.powerDbm = 80;
+    expect(assessHospitalContact(s, simulateScenario(s)).voiceReady).toBe(
+      false,
     );
   });
-
-  it("ignores out of sequence actions and keeps acknowledgement terminal", () => {
-    expect(play({ type: "send", message: "clear" })).toEqual(
-      initialTsunamiState,
+  it("supports the regional HF experiment while above-MUF fails", () => {
+    const s = switchScenarioBand(
+      createHospitalScenario("meulaboh-medan"),
+      "HF",
     );
+    s.frequencyHz = 7.055e6;
+    expect(assessHospitalContact(s, simulateScenario(s)).voiceReady).toBe(true);
+    s.frequencyHz = 30e6;
+    expect(assessHospitalContact(s, simulateScenario(s)).voiceReady).toBe(
+      false,
+    );
+  });
+  it("keeps UHF experimental and preserves endpoints when changing bands", () => {
+    const s = createHospitalScenario();
+    s.receiver.position = {
+      ...s.transmitter.position,
+      latitudeDeg: s.transmitter.position.latitudeDeg + 0.01,
+    };
+    const uhf = switchScenarioBand(s, "UHF");
+    expect(uhf.transmitter.position).toEqual(s.transmitter.position);
+    expect(uhf.receiver.position).toEqual(s.receiver.position);
+    expect(assessHospitalContact(uhf, simulateScenario(uhf)).voiceReady).toBe(
+      true,
+    );
+  });
+  it("adds 10 dB with ten times the power, like Bigger signal", () => {
+    const s = createHospitalScenario();
+    const before = simulateScenario(s);
+    s.transmitter.powerDbm += 10;
     expect(
-      play({ type: "begin" }, { type: "send", message: "clear" }).phase,
-    ).toBe("equipment");
-    const done = play(
-      { type: "begin" },
-      { type: "power", value: "battery" },
-      { type: "route", value: "radio" },
-      { type: "connect" },
-      { type: "send", message: "clear" },
+      simulateScenario(s).receivedPowerDbm - before.receivedPowerDbm,
+    ).toBeCloseTo(10, 8);
+  });
+  it("does not pass a voice request on a data-only mode", () => {
+    const s = createHospitalScenario();
+    s.modeId = "ft8";
+    expect(assessHospitalContact(s, simulateScenario(s)).voiceReady).toBe(
+      false,
     );
-    expect(tsunamiReducer(done, { type: "power", value: "grid" })).toEqual(
-      done,
+  });
+  it("reverses terrain positions for the reply and leaves the original intact", () => {
+    const s = createHospitalScenario();
+    s.environment = {
+      model: "vhf-terrain",
+      temperatureK: 290,
+      effectiveEarthRadiusFactor: 4 / 3,
+      obstruction: { fraction: 0.2, altitudeM: 40 },
+    };
+    const reversed = hospitalReplyScenario(s);
+    expect(reversed.transmitter.position).toEqual(s.receiver.position);
+    expect(reversed.receiver.position).toEqual(s.transmitter.position);
+    expect(
+      reversed.environment.model === "vhf-terrain" &&
+        reversed.environment.obstruction?.fraction,
+    ).toBe(0.8);
+    expect(s.environment.obstruction?.fraction).toBe(0.2);
+  });
+});
+
+describe("geographic hospital routes", () => {
+  it("uses the documented pair rather than a fixed Meulaboh transmitter", () => {
+    const s = createHospitalScenario("melati-adam-malik");
+    expect(s.transmitter.position.latitudeDeg).toBeCloseTo(3.56613);
+    expect(s.receiver.position.longitudeDeg).toBeCloseTo(98.60863);
+    expect(s.title).toContain("patient transfer");
+  });
+  it("preserves the historical hospital endpoints through band changes", () => {
+    const s = createHospitalScenario("cut-meutia-medan");
+    for (const band of ["VHF", "UHF", "HF"] as const) {
+      const next = switchScenarioBand(s, band);
+      expect(next.transmitter.position).toEqual(s.transmitter.position);
+      expect(next.receiver.position).toEqual(s.receiver.position);
+    }
+  });
+  it("rejects an unknown documented route at the scenario boundary", () => {
+    expect(() => createHospitalScenario("missing" as never)).toThrow(
+      "Unknown hospital route",
     );
   });
 });

@@ -1,53 +1,94 @@
-import { tsunamiContent } from "../../content/explanations/tsunami";
+import { wattsToDbm } from "../units/src";
+import type { Scenario, SimulationResult } from "../contracts";
+import { loadExampleScenario } from "../simulation/examples/scenarios";
+import { simulateScenario } from "../simulation/src";
 
-export interface TsunamiState {
-  phase: "blackout" | "equipment" | "message" | "acknowledged";
-  power: "grid" | "battery";
-  route: "phone" | "radio";
-  feedback: string;
+import {
+  hospitalNetworkLinks,
+  hospitalNetworkNodes,
+} from "../../content/explanations/hospital-network";
+
+export type HospitalRoute =
+  | "meulaboh-medan"
+  | "meulaboh-banda"
+  | "meulaboh-lhoknga"
+  | "cut-meutia-medan"
+  | "melati-adam-malik";
+export const hospitalRoutes = hospitalNetworkLinks;
+
+export function createHospitalScenario(
+  route: HospitalRoute = "meulaboh-medan",
+): Scenario {
+  const link = hospitalRoutes.find((r) => r.id === route);
+  if (!link) throw new RangeError("Unknown hospital route");
+  const from = hospitalNetworkNodes.find((n) => n.id === link.from)!;
+  const to = hospitalNetworkNodes.find((n) => n.id === link.to)!;
+  const s = loadExampleScenario("hf-day");
+  s.id = `tsunami-hospital-${route}`;
+  s.title = link.label;
+  s.difficulty = "beginner";
+  s.frequencyHz = 7.055e6;
+  s.transmitter.powerDbm = wattsToDbm(5);
+  s.transmitter.position = {
+    latitudeDeg: from.latitudeDeg,
+    longitudeDeg: from.longitudeDeg,
+    altitudeM: 0,
+  };
+  s.receiver.position = {
+    latitudeDeg: to.latitudeDeg,
+    longitudeDeg: to.longitudeDeg,
+    altitudeM: 0,
+  };
+  s.time.utcIso = "2005-01-15T05:00:00.000Z";
+  return s;
 }
 
-export type TsunamiAction =
-  | { type: "begin" }
-  | { type: "power"; value: TsunamiState["power"] }
-  | { type: "route"; value: TsunamiState["route"] }
-  | { type: "connect" }
-  | { type: "send"; message: "vague" | "clear" }
-  | { type: "reset" };
+export function hospitalReplyScenario(s: Scenario): Scenario {
+  return {
+    ...structuredClone(s),
+    id: `${s.id}-reply`,
+    transmitter: {
+      position: { ...s.receiver.position },
+      antenna: { ...s.receiver.antenna },
+      feedline: { ...s.receiver.feedline },
+      powerDbm: s.transmitter.powerDbm,
+    },
+    receiver: {
+      ...structuredClone(s.receiver),
+      position: { ...s.transmitter.position },
+      antenna: { ...s.transmitter.antenna },
+      feedline: { ...s.transmitter.feedline },
+    },
+    environment:
+      s.environment.model === "vhf-terrain" && s.environment.obstruction
+        ? {
+            ...s.environment,
+            obstruction: {
+              ...s.environment.obstruction,
+              fraction: 1 - s.environment.obstruction.fraction,
+            },
+          }
+        : structuredClone(s.environment),
+  };
+}
 
-export const initialTsunamiState: TsunamiState = {
-  phase: "blackout",
-  power: "grid",
-  route: "phone",
-  feedback: "",
-};
-
-export function tsunamiReducer(
-  state: TsunamiState,
-  action: TsunamiAction,
-): TsunamiState {
-  const copy = tsunamiContent.feedback;
-  if (action.type === "reset") return initialTsunamiState;
-  switch (state.phase) {
-    case "blackout":
-      return action.type === "begin"
-        ? { ...state, phase: "equipment", feedback: copy.start }
-        : state;
-    case "equipment":
-      if (action.type === "power")
-        return { ...state, power: action.value, feedback: "" };
-      if (action.type === "route")
-        return { ...state, route: action.value, feedback: "" };
-      if (action.type !== "connect") return state;
-      if (state.power === "grid") return { ...state, feedback: copy.grid };
-      if (state.route === "phone") return { ...state, feedback: copy.phone };
-      return { ...state, phase: "message", feedback: copy.connected };
-    case "message":
-      if (action.type !== "send") return state;
-      return action.message === "clear"
-        ? { ...state, phase: "acknowledged", feedback: copy.acknowledged }
-        : { ...state, feedback: copy.vague };
-    case "acknowledged":
-      return state;
-  }
+export interface HospitalContact {
+  outward: SimulationResult;
+  reply: SimulationResult;
+  voiceReady: boolean;
+}
+export function assessHospitalContact(
+  s: Scenario,
+  outward: SimulationResult,
+): HospitalContact {
+  const reply = simulateScenario(hospitalReplyScenario(s));
+  return {
+    outward,
+    reply,
+    voiceReady:
+      (s.modeId === "fm-voice" || s.modeId === "ssb") &&
+      [outward, reply].every(
+        (r) => r.propagationAvailable && r.success !== "failed",
+      ),
+  };
 }

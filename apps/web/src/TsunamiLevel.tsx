@@ -1,371 +1,475 @@
-import { useEffect, useId, useReducer, useRef } from "react";
+import { useState } from "react";
+import type { Scenario } from "../../../packages/contracts";
+import { hospitalContent as copy } from "../../../content/explanations/hospital";
 import {
-  initialTsunamiState,
-  tsunamiReducer,
+  assessHospitalContact,
+  createHospitalScenario,
+  hospitalRoutes,
+  type HospitalContact,
+  type HospitalRoute,
 } from "../../../packages/missions/tsunami";
-import { tsunamiContent as copy } from "../../../content/explanations/tsunami";
+import {
+  DEFAULT_BATTERY,
+  estimateBattery,
+} from "../../../packages/simulation/src/laboratory";
+import { dbmToWatts } from "../../../packages/units/src";
+import { LabWorkspace } from "./LabWorkspace";
+import { NumberField } from "./LabControls";
+import { HospitalNetworkScene } from "./HospitalNetworkScene";
+import {
+  hospitalNetworkNodes,
+  hospitalNetworkLinks,
+  hospitalNetworkCopy as networkCopy,
+} from "../../../content/explanations/hospital-network";
+import { greatCircleDistanceM } from "../../../packages/propagation/src";
+import { switchScenarioBand } from "./productDomain";
+import type { Graphics } from "./missions";
 import "./tsunami-level.css";
 
-function HospitalIcon() {
-  return (
-    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <path
-        d="M8 42V16h32v26M4 42h40M18 42V30h12v12M24 6v12M18 12h12M14 23h4m12 0h4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+export function TsunamiLevel({
+  onExit,
+  onOpenLesson,
+}: {
+  onExit?: () => void;
+  onOpenLesson?: (id: string) => void;
+}) {
+  const [scenario, setScenario] = useState(createHospitalScenario);
+  const [graphics, setGraphics] = useState<Graphics>("NORMAL");
+  const [contact, setContact] = useState<HospitalContact | null>(null);
+  const [delivered, setDelivered] = useState(false);
+  const [messageKind, setMessageKind] = useState<"medical" | "family">(
+    "medical",
   );
-}
-function RadioIcon() {
-  return (
-    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <path
-        d="m24 19-9 23m9-23 9 23M18 34h12M12 42h24M24 19v-7M17 21a10 10 0 0 1 0-14m14 0a10 10 0 0 1 0 14M11 26a17 17 0 0 1 0-24m26 0a17 17 0 0 1 0 24"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="24" cy="13" r="3" fill="currentColor" />
-    </svg>
+  const [route, setRoute] = useState<HospitalRoute | "custom">(
+    "meulaboh-medan",
   );
-}
-
-export function TsunamiLevel({ onExit }: { onExit?: () => void }) {
-  const [state, dispatch] = useReducer(tsunamiReducer, initialTsunamiState);
-  const uniqueId = useId();
-  const heading = useRef<HTMLHeadingElement>(null);
-  const previousPhase = useRef(state.phase);
-  const connected = state.phase === "message" || state.phase === "acknowledged";
-  const acknowledged = state.phase === "acknowledged";
-  const stages = ["Blackout", "Power & route", "The message", "Acknowledged"];
-  const currentStage = [
-    "blackout",
-    "equipment",
-    "message",
-    "acknowledged",
-  ].indexOf(state.phase);
-  useEffect(() => {
-    if (previousPhase.current !== state.phase) heading.current?.focus();
-    previousPhase.current = state.phase;
-  }, [state.phase]);
-
+  const [capacity, setCapacity] = useState(120);
+  const [duty, setDuty] = useState(10);
+  const [revision, setRevision] = useState(0);
+  const energy = estimateBattery({
+    ...DEFAULT_BATTERY,
+    capacityWh: capacity,
+    rfPowerW: dbmToWatts(scenario.transmitter.powerDbm),
+    transmitDutyCycle: duty / 100,
+  });
+  function edit(next: Scenario) {
+    setScenario(next);
+    setContact(null);
+    setDelivered(false);
+    if (
+      JSON.stringify(next.transmitter.position) !==
+        JSON.stringify(scenario.transmitter.position) ||
+      JSON.stringify(next.receiver.position) !==
+        JSON.stringify(scenario.receiver.position)
+    )
+      setRoute("custom");
+  }
+  function selectRoute(id: HospitalRoute) {
+    const preset = createHospitalScenario(id);
+    edit({
+      ...scenario,
+      id: preset.id,
+      title: preset.title,
+      transmitter: {
+        ...scenario.transmitter,
+        position: preset.transmitter.position,
+      },
+      receiver: { ...scenario.receiver, position: preset.receiver.position },
+    });
+    setRoute(id);
+  }
+  function tune(band: "HF" | "VHF", frequencyHz: number) {
+    edit({ ...switchScenarioBand(scenario, band), frequencyHz });
+  }
+  function reset() {
+    setScenario(createHospitalScenario());
+    setContact(null);
+    setDelivered(false);
+    setRoute("meulaboh-medan");
+    setCapacity(120);
+    setDuty(10);
+    setRevision((r) => r + 1);
+  }
   return (
-    <section className="tsunami-level" aria-labelledby={`${uniqueId}-title`}>
-      <div className="tsunami-topline">
-        <span className="tsunami-eyebrow">{copy.ui.eyebrow}</span>
-        {onExit && (
-          <button className="tsunami-exit" onClick={onExit}>
-            ← Back to missions
+    <section
+      className="tsunami-level hospital-level"
+      aria-labelledby="hospital-title"
+    >
+      <header className="hospital-heading">
+        <div>
+          <span className="eyebrow">
+            WHEN PHONES FAIL / HOSPITALS ACROSS A REGION
+          </span>
+          <h1 id="hospital-title">{networkCopy.title}</h1>
+          <p className="hospital-subtitle">{networkCopy.subtitle}</p>
+        </div>
+        <div>
+          <p>{networkCopy.introduction}</p>
+          <div className="hospital-header-actions">
+            {onExit && <button onClick={onExit}>← Disaster lab</button>}
+            <button onClick={reset}>Reset hospital experiment ↺</button>
+          </div>
+        </div>
+      </header>
+      <div className="hospital-route-bar">
+        <label>
+          Follow a documented connection
+          <select
+            value={route}
+            onChange={(e) => selectRoute(e.target.value as HospitalRoute)}
+          >
+            {route === "custom" && (
+              <option value="custom" disabled>
+                Custom experiment coordinates
+              </option>
+            )}
+            {hospitalRoutes.map((r) => (
+              <option value={r.id} key={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>
+          {route === "custom"
+            ? "You moved the stations. The engine now evaluates your custom route."
+            : hospitalRoutes.find((r) => r.id === route)?.evidence}
+        </p>
+        <div className="hospital-tuning">
+          <span>Reported station frequencies</span>
+          <button onClick={() => tune("VHF", 145.5e6)}>
+            VHF · 145.500 MHz
           </button>
+          <button onClick={() => tune("HF", 7.055e6)}>HF · 7.055 MHz</button>
+        </div>
+      </div>
+      <div className="hospital-selected-link">
+        <div>
+          <span className="eyebrow">
+            {route === "custom"
+              ? "EXPERIMENTAL PAIR"
+              : hospitalRoutes.find((r) => r.id === route)?.kind ===
+                  "patient-transfer"
+                ? "DOCUMENTED PATIENT TRANSFER"
+                : "DOCUMENTED RADIO CONTACT"}
+          </span>
+          <strong>
+            ≈{" "}
+            {Math.round(
+              greatCircleDistanceM(
+                scenario.transmitter.position,
+                scenario.receiver.position,
+              ) / 1000,
+            )}{" "}
+            km apart
+          </strong>
+        </div>
+        <p>{networkCopy.historicalLines}</p>
+        {route !== "custom" && (
+          <a
+            href={hospitalRoutes.find((r) => r.id === route)!.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Read the connection's source ↗
+          </a>
         )}
       </div>
-      <header className="tsunami-intro">
-        <div>
-          <p className="tsunami-dateline">
-            DISASTER COMMUNICATION · INTERACTIVE HISTORY
-          </p>
-          <h1 id={`${uniqueId}-title`}>{copy.title}</h1>
-          <p className="tsunami-subtitle">{copy.subtitle}</p>
+      <LabWorkspace
+        key={revision}
+        scenario={scenario}
+        onChange={edit}
+        graphics={graphics}
+        onGraphics={setGraphics}
+        renderScene={(props) => (
+          <HospitalNetworkScene
+            {...props}
+            nodes={hospitalNetworkNodes}
+            routes={hospitalNetworkLinks}
+            selectedRouteId={route}
+            voiceReady={contact?.voiceReady}
+            onSelectRoute={(id) => selectRoute(id as HospitalRoute)}
+          />
+        )}
+        keepSceneOnSend
+        onAttempt={(result) => {
+          setContact(assessHospitalContact(scenario, result));
+          setDelivered(false);
+        }}
+      />
+      {contact && (
+        <div className="hospital-radio-readout" aria-live="polite">
+          <strong>
+            {contact.outward.propagationAvailable
+              ? contact.outward.success.toUpperCase()
+              : "NO RADIO PATH"}
+          </strong>
+          {!contact.outward.propagationAvailable && (
+            <span>Hypothetical budget only</span>
+          )}
+          <span>
+            Received {contact.outward.receivedPowerDbm.toFixed(1)} dBm
+          </span>
+          <span>SNR {contact.outward.snrDb.toFixed(1)} dB</span>
+          <span>Margin {contact.outward.linkMarginDb.toFixed(1)} dB</span>
+          <span>
+            Return path{" "}
+            {contact.reply.propagationAvailable
+              ? contact.reply.success
+              : "unavailable"}
+          </span>
         </div>
-        <p className="tsunami-context">{copy.introduction}</p>
-      </header>
-      <ol className="tsunami-progress" aria-label="Level progress">
-        {stages.map((stage, index) => (
-          <li
-            key={stage}
-            className={
-              index === currentStage
-                ? "is-current"
-                : index < currentStage
-                  ? "is-complete"
-                  : ""
-            }
-            aria-current={index === currentStage ? "step" : undefined}
-          >
-            <span>{index < currentStage ? "✓" : `0${index + 1}`}</span>
-            {stage}
-          </li>
-        ))}
-      </ol>
-      <div className="tsunami-workspace">
-        <div className="tsunami-diagram-panel">
-          <div className="tsunami-panel-heading">
-            <div>
-              <p className="tsunami-kicker">Historical communication diagram</p>
-              <h2>{copy.ui.diagramTitle}</h2>
-            </div>
-            <span className={`tsunami-status ${connected ? "is-live" : ""}`}>
-              <i />
-              {acknowledged
-                ? "Reply received"
-                : connected
-                  ? "Radio link open"
-                  : "Contact lost"}
-            </span>
-          </div>
-          <p className="tsunami-diagram-description">
-            {copy.ui.diagramDescription}
-          </p>
-          <figure
-            className={`tsunami-diagram ${connected ? "is-connected" : ""} ${acknowledged ? "is-acknowledged" : ""}`}
-          >
-            <div className="tsunami-phone-label">
-              <span>×</span> Telephone network disrupted
-            </div>
-            <svg
-              className="tsunami-links"
-              viewBox="0 0 900 300"
-              preserveAspectRatio="none"
-              role="img"
-              aria-labelledby={`${uniqueId}-diagram-title ${uniqueId}-diagram-description`}
-            >
-              <title id={`${uniqueId}-diagram-title`}>
-                Hospital communication through amateur radio
-              </title>
-              <desc id={`${uniqueId}-diagram-description`}>
-                {copy.ui.diagramDescription}
-              </desc>
-              <path
-                className="tsunami-phone-path"
-                d="M130 165V50H380 M520 50H770V165"
-              />
-              <path className="tsunami-radio-path" d="M130 165H770" />
-              {connected && (
-                <circle className="tsunami-packet" r="5" cy="165" cx="130" />
-              )}
-              {acknowledged && (
-                <path
-                  className="tsunami-return-path"
-                  d="M770 205V262H130V205"
-                />
-              )}
-            </svg>
-            <div className="tsunami-nodes">
-              <div className="tsunami-node">
-                <div className="tsunami-node-icon">
-                  <HospitalIcon />
-                </div>
-                <strong>Melati Hospital</strong>
-                <span>Perbaungan</span>
-                <small>
-                  {connected ? "Battery-powered radio" : "Awaiting contact"}
-                </small>
-              </div>
-              <div className="tsunami-node tsunami-node-relay">
-                <div className="tsunami-node-icon">
-                  <RadioIcon />
-                </div>
-                <strong>VHF repeater</strong>
-                <span>Amateur radio relay</span>
-                <small>
-                  {connected
-                    ? "Operators passing traffic"
-                    : "Surviving radio equipment"}
-                </small>
-              </div>
-              <div className="tsunami-node">
-                <div className="tsunami-node-icon">
-                  <HospitalIcon />
-                </div>
-                <strong>Adam Malik Hospital</strong>
-                <span>Medan</span>
-                <small>
-                  {acknowledged ? "Acknowledgement returned" : "Receiving end"}
-                </small>
-              </div>
-            </div>
-            {acknowledged && (
-              <div className="tsunami-reply-label">
-                ← Message received · reply returned
-              </div>
-            )}
-            <figcaption>{copy.ui.schematicNote}</figcaption>
-          </figure>
-          <div className="tsunami-history-note">
-            <span aria-hidden="true">↳</span>
-            <p>{copy.historyNote}</p>
-          </div>
-        </div>
-        <div className="tsunami-action-panel">
-          <p className="tsunami-kicker">
-            Your turn · {String(currentStage + 1).padStart(2, "0")} / 04
-          </p>
-          <h2 ref={heading} tabIndex={-1}>
-            {state.phase === "blackout"
-              ? copy.ui.blackoutTitle
-              : state.phase === "equipment"
-                ? copy.ui.equipmentTitle
-                : state.phase === "message"
-                  ? copy.ui.messageTitle
-                  : copy.ui.acknowledgedTitle}
-          </h2>
-          {state.phase === "blackout" && (
-            <>
-              <p>{copy.ui.blackoutBody}</p>
-              <div className="tsunami-silence" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-              <button
-                className="tsunami-primary"
-                onClick={() => dispatch({ type: "begin" })}
-              >
-                Try to restore contact <span>→</span>
-              </button>
-            </>
-          )}
-          {state.phase === "equipment" && (
-            <>
-              <p>{copy.ui.equipmentBody}</p>
-              <fieldset>
-                <legend>1. Choose your power</legend>
-                <div className="tsunami-choices">
-                  {(
-                    [
-                      ["grid", "Mains power", "Plug into the grid"],
-                      ["battery", "Battery", "Independent power"],
-                    ] as const
-                  ).map(([value, label, detail]) => (
-                    <button
-                      key={value}
-                      aria-pressed={state.power === value}
-                      onClick={() => dispatch({ type: "power", value })}
-                    >
-                      <strong>{label}</strong>
-                      <span>{detail}</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset>
-                <legend>2. Choose your route</legend>
-                <div className="tsunami-choices">
-                  {(
-                    [
-                      ["phone", "Telephone", "Local phone network"],
-                      ["radio", "Amateur radio", "Operator relay"],
-                    ] as const
-                  ).map(([value, label, detail]) => (
-                    <button
-                      key={value}
-                      aria-pressed={state.route === value}
-                      onClick={() => dispatch({ type: "route", value })}
-                    >
-                      <strong>{label}</strong>
-                      <span>{detail}</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-              <button
-                className="tsunami-primary"
-                onClick={() => dispatch({ type: "connect" })}
-              >
-                Test the connection <span>→</span>
-              </button>
-            </>
-          )}
-          {state.phase === "message" && (
-            <>
-              <p>{copy.ui.messageBody}</p>
-              <div className="tsunami-message-brief">
-                <span className="tsunami-kicker">Practice message</span>
-                <p>{copy.message}</p>
-              </div>
-              <div className="tsunami-message-options">
-                <button
-                  onClick={() => dispatch({ type: "send", message: "vague" })}
-                >
-                  <span>01 · Send a general call</span>
-                  {copy.ui.vagueMessage}
-                </button>
-                <button
-                  onClick={() => dispatch({ type: "send", message: "clear" })}
-                >
-                  <span>02 · Send a structured message</span>
-                  {copy.ui.clearMessage}
-                </button>
-              </div>
-            </>
-          )}
-          {acknowledged && (
-            <>
-              <div className="tsunami-acknowledgement">
-                <span className="tsunami-kicker">Return transmission</span>
-                <p>{copy.acknowledgement}</p>
-              </div>
-              <p>{copy.completion}</p>
-              <button
-                className="tsunami-primary"
-                onClick={() => dispatch({ type: "reset" })}
-              >
-                Replay the level <span>↺</span>
-              </button>
-            </>
-          )}
-          <div
-            className={`tsunami-feedback ${state.feedback ? "has-feedback" : ""}`}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {state.feedback}
-          </div>
-        </div>
-      </div>
+      )}
+      <p className="hospital-assumptions">{copy.radioNote}</p>
       <section
-        className="tsunami-takeaway"
-        aria-labelledby={`${uniqueId}-lesson`}
+        className="hospital-handoffs"
+        aria-label="How a hospital request travels"
       >
-        <div>
-          <p className="tsunami-kicker">What stays with us</p>
-          <h2 id={`${uniqueId}-lesson`}>{copy.ui.lessonTitle}</h2>
-          <p>{copy.ui.lessonBody}</p>
-        </div>
-        <div className="tsunami-explainers">
-          {copy.explainers.map((explainer, index) => (
-            <article key={explainer.title}>
-              <span>0{index + 1}</span>
-              <h3>{explainer.title}</h3>
-              <p>{explainer.body}</p>
-            </article>
+        <article>
+          <span className="eyebrow">01 / ASK</span>
+          <h3>A hospital needs help.</h3>
+          <p>
+            A local operator turns the request into a short message with a
+            destination, a need and a way to reply.
+          </p>
+        </article>
+        <article>
+          <span className="eyebrow">02 / RELAY</span>
+          <h3>Another operator hears it.</h3>
+          <p>
+            Net control can pass the request to the people coordinating medical
+            support. Acknowledgement tells the sender it was heard.
+          </p>
+        </article>
+        <article>
+          <span className="eyebrow">03 / ACT</span>
+          <h3>People arrange the response.</h3>
+          <p>
+            Radio carries information. Medical teams arrange care and transport;
+            a successful signal alone does not deliver either.
+          </p>
+        </article>
+      </section>
+      <details className="hospital-directory">
+        <summary>
+          Explore all {hospitalNetworkNodes.length} documented sites and
+          experiment with another pair
+        </summary>
+        <p>{networkCopy.scope}</p>
+        <p>{networkCopy.geography}</p>
+        <div className="hospital-pair-controls">
+          {(["transmitter", "receiver"] as const).map((end) => (
+            <label key={end}>
+              {end === "transmitter" ? "Send from" : "Receive at"}
+              <select
+                value={
+                  hospitalNetworkNodes.find(
+                    (n) =>
+                      n.latitudeDeg === scenario[end].position.latitudeDeg &&
+                      n.longitudeDeg === scenario[end].position.longitudeDeg,
+                  )?.id ?? "custom"
+                }
+                onChange={(e) => {
+                  const n = hospitalNetworkNodes.find(
+                    (n) => n.id === e.target.value,
+                  )!;
+                  edit({
+                    ...scenario,
+                    [end]: {
+                      ...scenario[end],
+                      position: {
+                        latitudeDeg: n.latitudeDeg,
+                        longitudeDeg: n.longitudeDeg,
+                        altitudeM: 0,
+                      },
+                    },
+                  });
+                  setRoute("custom");
+                }}
+              >
+                <option value="custom" disabled>
+                  Custom coordinates
+                </option>
+                {hospitalNetworkNodes.map((n) => (
+                  <option value={n.id} key={n.id}>
+                    {n.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           ))}
         </div>
+        <ul>
+          {hospitalNetworkNodes.map((n, index) => (
+            <li key={n.id}>
+              <strong>
+                {index + 1}. {n.label}
+              </strong>
+              <span>
+                {n.callSign ?? "Command post"} ·{" "}
+                {n.kind === "coordination"
+                  ? "Coordination station"
+                  : n.kind === "field-hospital"
+                    ? "Emergency hospital"
+                    : "Hospital"}
+              </span>
+              <p>{n.note}</p>
+            </li>
+          ))}
+        </ul>
+      </details>
+      <section
+        className="hospital-techniques"
+        aria-label="Radio techniques used in the response"
+      >
+        {networkCopy.techniques.map((t) => (
+          <article key={t.title}>
+            <h3>{t.title}</h3>
+            <p>{t.body}</p>
+            <a href={t.url} target="_blank" rel="noreferrer">
+              Evidence ↗
+            </a>
+          </article>
+        ))}
       </section>
-      <footer className="tsunami-footer">
-        <p>{copy.ui.limitation}</p>
-        <details>
-          <summary>Historical sources & interpretation</summary>
-          <p className="tsunami-model-note">{copy.modelNote}</p>
-          <ul>
-            {copy.sources.map((source) => (
-              <li key={source.url}>
-                <a href={source.url} target="_blank" rel="noreferrer">
-                  {source.title} ↗
-                </a>
-                <p>{source.note}</p>
-              </li>
-            ))}
-          </ul>
-        </details>
-      </footer>
+      <section className="hospital-family" aria-labelledby="family-heading">
+        <div className="hospital-family-story">
+          <span className="eyebrow">WHY THIS CONNECTION MATTERS</span>
+          <h2 id="family-heading">{copy.familyTitle}</h2>
+          <p>{copy.familyStory}</p>
+          <a href={copy.sources[4].url} target="_blank" rel="noreferrer">
+            Read the documented family-contact story ↗
+          </a>
+          <p className="hospital-small">{copy.familyLimit}</p>
+        </div>
+        <div className="hospital-message">
+          <span className="eyebrow">YOUR PRACTICE MESSAGE / FICTIONAL</span>
+          <label className="hospital-message-kind">
+            Message to practise
+            <select
+              value={messageKind}
+              onChange={(e) => {
+                setMessageKind(e.target.value as "medical" | "family");
+                setDelivered(false);
+              }}
+            >
+              <option value="medical">Request medical support</option>
+              <option value="family">Request family contact</option>
+            </select>
+          </label>
+          <p className="hospital-transcript">
+            {messageKind === "medical"
+              ? copy.medicalMessage.replace(
+                  "Medan net control",
+                  route === "custom"
+                    ? "Receiving station"
+                    : (hospitalNetworkNodes.find(
+                        (n) =>
+                          n.id ===
+                          hospitalRoutes.find((r) => r.id === route)?.to,
+                      )?.shortLabel ?? "Receiving station"),
+                )
+              : copy.message}
+          </p>
+          <div role="status" aria-live="polite">
+            {delivered ? (
+              <p className="hospital-received">
+                {messageKind === "family"
+                  ? copy.received
+                  : "Request acknowledged in this exercise. The next operator can pass it to a relief coordinator. This does not mean supplies or staff have arrived."}
+              </p>
+            ) : contact ? (
+              <p>
+                {contact.voiceReady
+                  ? "Both modeled voice paths work. You can pass the request."
+                  : "The message is waiting. Both directions need a usable voice link. Try 7.055 MHz HF for the regional Medan link."}{" "}
+                <small>
+                  Outward {contact.outward.success} · reply{" "}
+                  {contact.reply.success}
+                </small>
+              </p>
+            ) : (
+              <p>
+                Make a prediction and SEND IT to test the radio before passing
+                the request.
+              </p>
+            )}
+          </div>
+          <button
+            className="primary"
+            disabled={!contact?.voiceReady || delivered}
+            onClick={() => setDelivered(true)}
+          >
+            {delivered
+              ? "Request passed to the next operator ✓"
+              : "Pass the request ↗"}
+          </button>
+          <details>
+            <summary>What does the return-link check assume?</summary>
+            <p>{copy.replyNote}</p>
+          </details>
+        </div>
+      </section>
+      <section
+        className="hospital-learning"
+        aria-label="Connections to the first learning levels"
+      >
+        {copy.experiments.map((e, i) => (
+          <article key={e.lessonId}>
+            <span className="eyebrow">0{i + 1} / FROM THE LEARNING LAB</span>
+            <h3>{e.title}</h3>
+            <p>{e.body}</p>
+            {onOpenLesson && (
+              <button onClick={() => onOpenLesson(e.lessonId)}>
+                Open this learning level ↗
+              </button>
+            )}
+          </article>
+        ))}
+      </section>
+      <details className="hospital-energy">
+        <summary>How long can the radio keep running?</summary>
+        <div>
+          <NumberField
+            label="Battery capacity / Wh"
+            value={capacity}
+            min={1}
+            max={1000}
+            onChange={setCapacity}
+          />
+          <NumberField
+            label="Time transmitting / %"
+            value={duty}
+            min={0}
+            max={60}
+            onChange={setDuty}
+          />
+          <p>
+            <strong>{energy.runtimeHours?.toFixed(1)} hours</strong> estimated
+            runtime at {dbmToWatts(scenario.transmitter.powerDbm).toFixed(1)} W
+            RF output.
+          </p>
+        </div>
+        <p>
+          Illustrative battery, not a historical measurement. 80% usable energy,
+          40% amplifier efficiency, 40% of time receiving; the remaining time is
+          idle. Increase transmit power in Your radio and compare the runtime.
+        </p>
+      </details>
+      <details className="hospital-sources">
+        <summary>What is documented, and what is reconstructed?</summary>
+        <p>{copy.layoutNote}</p>
+        <ul>
+          {copy.sources.map((s) => (
+            <li key={s.url}>
+              <a href={s.url} target="_blank" rel="noreferrer">
+                {s.title} ↗
+              </a>
+              <p>{s.note}</p>
+            </li>
+          ))}
+        </ul>
+      </details>
     </section>
   );
 }
